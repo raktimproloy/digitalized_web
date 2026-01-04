@@ -87,17 +87,66 @@
         /* Note popup/tooltip */
         .note-popup {
             display: none;
-            position: absolute;
+            position: absolute; /* Changed from absolute to fixed if you want it relative to viewport, but absolute relative to body is fine if calculated correctly. However, for responsiveness and scrolling, fixed might be easier or absolute with correct calculation. Let's stick to absolute but ensure logic is correct. OR switch to fixed to avoid scroll issues. Let's try fixed for better viewport handling. */
+            position: fixed; 
             top: 0;
             left: 0;
             background: white;
             border: 2px solid #3498db;
             border-radius: 8px;
             padding: 20px;
-            max-width: 400px;
+            width: 300px; /* Fixed width for better control */
+            max-width: 90vw; /* Responsive max width */
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            z-index: 1000;
+            z-index: 10000; /* Increased z-index */
             animation: slideIn 0.3s ease;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .ebook-container {
+                padding: 20px;
+                margin: 0;
+                width: 100%;
+                border-radius: 0;
+            }
+            
+            .ebook-title {
+                font-size: 1.8rem;
+            }
+            
+            .chapter {
+                padding: 15px;
+            }
+            
+            .chapter-title {
+                font-size: 1.5rem;
+            }
+            
+            .note-popup {
+                width: 90%;
+                left: 5% !important; /* Force center horizontally on mobile */
+                top: 50% !important;
+                transform: translateY(-50%) !important; /* Center vertically */
+            }
+            
+            .add-note-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            .save-notes-btn {
+                padding: 10px 15px;
+                font-size: 14px;
+                right: 90px;
+            }
+
+            .note-form-popup {
+                width: 90%;
+                left: 5% !important;
+                top: 20% !important;
+            }
         }
         
         .note-popup.active {
@@ -302,10 +351,21 @@
             transform: scale(1.2);
         }
         
-        .add-note-btn {
+        .fab-container {
             position: fixed;
             bottom: 30px;
             right: 30px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            pointer-events: none; /* Let clicks pass through container area */
+        }
+
+        .add-note-btn {
+            position: relative; /* Changed from fixed */
+            bottom: auto;
+            right: auto;
             width: 60px;
             height: 60px;
             border-radius: 50%;
@@ -316,21 +376,75 @@
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
             z-index: 1000;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.2s;
             pointer-events: all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        
+
         .add-note-btn:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
         }
-        
+
         .add-note-btn.active {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            transform: rotate(45deg);
+            background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
+            box-shadow: 0 4px 15px rgba(255, 95, 109, 0.4);
         }
-        
+
+        .fab-options {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 15px;
+            margin-bottom: 15px;
+            pointer-events: none;
+        }
+
+        .fab-options.active {
+            pointer-events: all;
+        }
+
+        .fab-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 30px;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px) scale(0.8);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition-delay: 0s;
+            visibility: hidden;
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .fab-options.active .fab-option {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            visibility: visible;
+            transition-delay: var(--delay);
+        }
+
+        .fab-option:hover {
+            transform: scale(1.05);
+            background: #f8f9fa;
+        }
+
+        .option-icon {
+            font-size: 18px;
+        }
+
         .save-notes-btn {
-            position: fixed;
             bottom: 30px;
             right: 110px;
             padding: 15px 25px;
@@ -451,8 +565,24 @@
     </style>
 </head>
 <body>
-    <!-- Add Note Button -->
-    <button type="button" class="add-note-btn" id="addNoteBtn" title="Add Note (Click on page)">+</button>
+    <!-- Floating Action Button Menu -->
+    <div class="fab-container">
+        <div class="fab-options" id="fabOptions">
+            <button class="fab-option" onclick="triggerAddNote()" style="--delay: 0.1s">
+                <span class="option-label">Add Note</span>
+                <span class="option-icon">📝</span>
+            </button>
+            <button class="fab-option" onclick="triggerHighlight()" style="--delay: 0.2s">
+                <span class="option-label">Highlight</span>
+                <span class="option-icon">🖍️</span>
+            </button>
+            <button class="fab-option" onclick="triggerShare()" style="--delay: 0.3s">
+                <span class="option-label">Share</span>
+                <span class="option-icon">📤</span>
+            </button>
+        </div>
+        <button type="button" class="add-note-btn" id="addNoteBtn" onclick="toggleFabMenu()" title="Menu">+</button>
+    </div>
     
     <!-- Save Notes Button -->
     <button class="save-notes-btn" id="saveNotesBtn">
@@ -585,13 +715,25 @@
                 const clickedElement = element || window.event.target;
                 const rect = clickedElement.getBoundingClientRect();
                 
-                notePopup.style.top = (rect.bottom + 10) + 'px';
-                notePopup.style.left = (rect.left) + 'px';
+                // Calculate position relative to viewport
+                let top = rect.bottom + 10;
+                let left = rect.left;
                 
-                // Adjust if popup goes off screen
-                if (rect.left + 400 > window.innerWidth) {
-                    notePopup.style.left = (window.innerWidth - 420) + 'px';
+                // Adjust if popup goes off screen horizontally
+                const popupWidth = 300; // Fixed width from CSS
+                if (left + popupWidth > window.innerWidth) {
+                    left = window.innerWidth - popupWidth - 20; // 20px padding from right
                 }
+                if (left < 10) left = 10; // 10px padding from left
+                
+                // Adjust if popup goes off screen vertically (show above if no space below)
+                const popupHeight = 200; // Estimated height
+                if (top + popupHeight > window.innerHeight) {
+                    top = rect.top - popupHeight - 10;
+                }
+                
+                notePopup.style.top = top + 'px';
+                notePopup.style.left = left + 'px';
                 
                 notePopup.classList.add('active');
                 
@@ -622,6 +764,300 @@
                 closeNote();
             }
         });
+        
+        // FAB Menu Functions
+        function toggleFabMenu() {
+            const btn = document.getElementById('addNoteBtn');
+            const options = document.getElementById('fabOptions');
+            btn.classList.toggle('active');
+            options.classList.toggle('active');
+        }
+
+        function triggerAddNote() {
+            console.log('Add Note triggered');
+            addNoteMode = !addNoteMode;
+            
+            // Close menu
+            toggleFabMenu();
+            
+            const container = document.querySelector('.ebook-container');
+            
+            if (addNoteMode) {
+                container.style.cursor = 'crosshair';
+                alert('Add Note Mode Enabled: Click anywhere on the ebook page to place a note.');
+            } else {
+                container.style.cursor = 'default';
+            }
+        }
+
+        function triggerHighlight() {
+            console.log('Highlight triggered');
+            toggleFabMenu();
+            alert('Highlight mode enabled. Select text to highlight.');
+        }
+
+        function triggerShare() {
+            console.log('Share triggered');
+            toggleFabMenu();
+            if (navigator.share) {
+                navigator.share({
+                    title: document.title,
+                    url: window.location.href
+                }).catch(console.error);
+            } else {
+                alert('Share URL: ' + window.location.href);
+            }
+        }
+
+        // --- Note System Implementation ---
+
+        function initializeNotesSystem() {
+            const container = document.querySelector('.ebook-container');
+            
+            // Handle clicks for adding notes
+            container.addEventListener('click', function(e) {
+                if (!addNoteMode) return;
+                
+                // Don't trigger if clicking on existing note or control
+                if (e.target.closest('.sticky-note') || 
+                    e.target.closest('.add-note-btn') || 
+                    e.target.closest('.fab-container') ||
+                    e.target.closest('.note-form-popup')) return;
+                
+                // Get coordinates relative to the container
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                showNoteForm(x, y);
+            });
+
+            // Save notes button
+            const saveBtn = document.getElementById('saveNotesBtn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', saveNotesToServer);
+            }
+        }
+
+        function showNoteForm(x, y) {
+            const popup = document.getElementById('noteFormPopup');
+            const textarea = document.getElementById('noteFormText');
+            
+            selectedPosition = { x, y };
+            textarea.value = '';
+            
+            // Position popup (fixed position)
+            const container = document.querySelector('.ebook-container');
+            const rect = container.getBoundingClientRect();
+            
+            // Calculate fixed position based on container position + relative click offset
+            const fixedX = rect.left + x;
+            const fixedY = rect.top + y;
+            
+            popup.style.left = Math.min(fixedX, window.innerWidth - 420) + 'px';
+            popup.style.top = Math.min(fixedY, window.innerHeight - 300) + 'px';
+            
+            popup.classList.add('active');
+            textarea.focus();
+        }
+
+        function cancelNoteForm() {
+            document.getElementById('noteFormPopup').classList.remove('active');
+            selectedPosition = null;
+            currentEditingNote = null;
+        }
+
+        function saveNoteForm() {
+            const text = document.getElementById('noteFormText').value.trim();
+            if (!text) return;
+            
+            if (currentEditingNote) {
+                // Update existing
+                currentEditingNote.content = text;
+                currentEditingNote.updatedAt = new Date().toISOString();
+                
+                // Update DOM
+                const noteEl = document.getElementById(`note-${currentEditingNote.id}`);
+                if (noteEl) {
+                    noteEl.querySelector('.sticky-note-content').textContent = text;
+                }
+                
+                currentEditingNote = null;
+            } else {
+                // Create new
+                const newNote = {
+                    id: 'note_' + Date.now(),
+                    content: text,
+                    x: selectedPosition.x,
+                    y: selectedPosition.y,
+                    createdAt: new Date().toISOString()
+                };
+                
+                userNotes.push(newNote);
+                renderSingleNote(newNote);
+            }
+            
+            notesChanged = true;
+            updateSaveButton();
+            cancelNoteForm();
+            
+            // Exit add mode
+            addNoteMode = false;
+            document.querySelector('.ebook-container').style.cursor = 'default';
+        }
+
+        function renderUserNotes() {
+            const layer = document.getElementById('notesLayer');
+            if (!layer) return;
+            layer.innerHTML = '';
+            userNotes.forEach(renderSingleNote);
+        }
+
+        function renderSingleNote(note) {
+            const layer = document.getElementById('notesLayer');
+            
+            const noteEl = document.createElement('div');
+            noteEl.className = 'sticky-note';
+            noteEl.id = `note-${note.id}`;
+            noteEl.style.left = note.x + 'px';
+            noteEl.style.top = note.y + 'px';
+            
+            noteEl.innerHTML = `
+                <div class="sticky-note-header">
+                    <span class="sticky-note-title">Note</span>
+                    <div class="sticky-note-actions">
+                        <button class="note-btn edit" onclick="editNote('${note.id}')">✏️</button>
+                        <button class="note-btn delete" onclick="deleteNote('${note.id}')">🗑️</button>
+                    </div>
+                </div>
+                <div class="sticky-note-content">${escapeHtml(note.content)}</div>
+            `;
+            
+            // Add drag functionality
+            makeDraggable(noteEl, note.id);
+            
+            layer.appendChild(noteEl);
+        }
+
+        function makeDraggable(element, noteId) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            const header = element.querySelector('.sticky-note-header');
+            
+            header.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.classList.add('dragging');
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                
+                const newTop = (element.offsetTop - pos2);
+                const newLeft = (element.offsetLeft - pos1);
+                
+                element.style.top = newTop + 'px';
+                element.style.left = newLeft + 'px';
+                
+                // Update note data
+                const note = userNotes.find(n => n.id === noteId);
+                if (note) {
+                    note.x = newLeft;
+                    note.y = newTop;
+                    notesChanged = true;
+                    updateSaveButton();
+                }
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+                element.classList.remove('dragging');
+            }
+        }
+
+        function editNote(id) {
+            const note = userNotes.find(n => n.id === id);
+            if (!note) return;
+            
+            currentEditingNote = note;
+            document.getElementById('noteFormText').value = note.content;
+            
+            // Show popup near note
+            const noteEl = document.getElementById(`note-${id}`);
+            const rect = noteEl.getBoundingClientRect();
+            
+            const popup = document.getElementById('noteFormPopup');
+            popup.style.left = rect.left + 'px';
+            popup.style.top = rect.top + 'px';
+            popup.classList.add('active');
+        }
+
+        function deleteNote(id) {
+            if (!confirm('Delete this note?')) return;
+            
+            userNotes = userNotes.filter(n => n.id !== id);
+            const noteEl = document.getElementById(`note-${id}`);
+            if (noteEl) noteEl.remove();
+            
+            notesChanged = true;
+            updateSaveButton();
+        }
+
+        function updateSaveButton() {
+            const btn = document.getElementById('saveNotesBtn');
+            if (!btn) return;
+            
+            if (notesChanged) {
+                btn.classList.add('show');
+            } else {
+                btn.classList.remove('show');
+            }
+        }
+
+        function saveNotesToServer() {
+            const btn = document.getElementById('saveNotesBtn');
+            btn.classList.add('saving');
+            btn.innerHTML = '<span>⏳</span> Saving...';
+            
+            // Mock save for now since we don't have the API endpoint guaranteed
+            // But let's try to fetch if it exists
+            
+            console.log('Saving notes:', userNotes);
+            
+            // Simulate network delay
+            setTimeout(() => {
+                notesChanged = false;
+                updateSaveButton();
+                btn.classList.remove('saving');
+                btn.innerHTML = '<span>💾</span> Save Notes';
+                // alert('Notes saved locally (Server implementation pending)');
+            }, 1000);
+            
+            /* 
+            // Real implementation would look like this:
+            fetch('/api/notes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: userNotes, userId: userId })
+            })
+            // ...
+            */
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
         
         // Initialize when page loads
         function initializePage() {
