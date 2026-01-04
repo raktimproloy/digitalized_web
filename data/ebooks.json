@@ -1,0 +1,52 @@
+{
+  "123": {
+    "userId": "123",
+    "title": "Mathematics Fundamentals",
+    "chapters": [
+      {
+        "id": 1,
+        "title": "Introduction to Algebra",
+        "content": "In mathematics, algebra is the study of mathematical symbols and the rules for manipulating these symbols. The equation $x^2 + 5x + 6 = 0$ can be factored as $(x + 2)(x + 3) = 0$. This is *quadratic equation*@quadratic equation@, which is a fundamental concept in algebra. The solution involves finding values of $x$ that satisfy the equation: $x = -2$ or $x = -3$.\n\nWhen we solve $ax^2 + bx + c = 0$, we use the quadratic formula: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$. This formula works for any *coefficient*@coefficient@ in the equation. The discriminant $\\Delta = b^2 - 4ac$ determines the nature of the roots.\n\nExample: This is *a dog*@akti kukur@. This is so big."
+      },
+      {
+        "id": 2,
+        "title": "Calculus Basics",
+        "content": "Calculus is the mathematical study of continuous change. The derivative of a function $f(x)$ at a point $x$ is defined as: $$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$. This concept is essential for understanding rates of change.\n\nFor example, if $f(x) = x^2$, then $f'(x) = 2x$. The integral, represented as $\\int f(x) dx$, is the reverse operation. The fundamental theorem of calculus states: $$\\int_a^b f'(x) dx = f(b) - f(a)$$. This is *fundamental theorem*@fundamental theorem@ that connects differentiation and integration."
+      },
+      {
+        "id": 3,
+        "title": "Linear Algebra",
+        "content": "Linear algebra deals with vector spaces and linear mappings. A vector in $\\mathbb{R}^3$ can be represented as $\\vec{v} = \\begin{pmatrix} x \\\\ y \\\\ z \\end{pmatrix}$. Matrix multiplication follows the rule: if $A$ is $m \\times n$ and $B$ is $n \\times p$, then $AB$ is $m \\times p$.\n\nThe determinant of a $2 \\times 2$ matrix $A = \\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$ is $\\det(A) = ad - bc$. Eigenvalues and eigenvectors satisfy the equation $A\\vec{v} = \\lambda\\vec{v}$, where $\\lambda$ is an *eigenvalue*@eigenvalue@ and $\\vec{v}$ is the corresponding eigenvector."
+      }
+    ],
+    "notes": {
+      "quadratic equation": "A quadratic equation is a polynomial equation of degree 2, typically written in the form ax² + bx + c = 0, where a, b, and c are coefficients and a ≠ 0.",
+      "coefficient": "A coefficient is a numerical or constant factor that multiplies a variable in an algebraic expression. For example, in 3x, 3 is the coefficient of x.",
+      "fundamental theorem": "The Fundamental Theorem of Calculus establishes the relationship between differentiation and integration, showing that these two operations are inverse processes.",
+      "eigenvalue": "An eigenvalue is a scalar that, when multiplied by a vector, produces the same result as multiplying the vector by a matrix. It represents the scale factor of the eigenvector.",
+      "akti kukur": "A dog (Bengali: 'akti kukur') is a domesticated mammal, a subspecies of the gray wolf. Dogs have been selectively bred over millennia for various behaviors, sensory capabilities, and physical attributes."
+    }
+  },
+  "456": {
+    "userId": "456",
+    "title": "Physics Concepts",
+    "chapters": [
+      {
+        "id": 1,
+        "title": "Newton's Laws",
+        "content": "Newton's second law states that $F = ma$, where $F$ is force, $m$ is mass, and $a$ is acceleration. This is a *fundamental principle*@fundamental principle@ in mechanics.\n\nThe gravitational force between two objects is given by: $$F = G \\frac{m_1 m_2}{r^2}$$ where $G$ is the gravitational constant, $m_1$ and $m_2$ are the masses, and $r$ is the distance between them. This is *universal gravitation*@universal gravitation@ law."
+      },
+      {
+        "id": 2,
+        "title": "Energy and Work",
+        "content": "The work done by a force is $W = F \\cdot d = Fd\\cos(\\theta)$, where $\\theta$ is the angle between the force and displacement vectors. Kinetic energy is $KE = \\frac{1}{2}mv^2$ and potential energy is $PE = mgh$.\n\nThe conservation of energy principle states that in a closed system, total energy remains constant: $E_{total} = KE + PE = constant$. This is *energy conservation*@energy conservation@."
+      }
+    ],
+    "notes": {
+      "fundamental principle": "A fundamental principle is a basic truth or law that serves as the foundation for a system of belief or behavior, or for a chain of reasoning.",
+      "universal gravitation": "Universal gravitation is the gravitational force that acts between all objects in the universe. Every particle attracts every other particle with a force proportional to the product of their masses.",
+      "energy conservation": "Energy conservation is the principle that the total energy of an isolated system remains constant; it is said to be conserved over time. Energy can neither be created nor destroyed, only transformed from one form to another."
+    }
+  }
+}
+

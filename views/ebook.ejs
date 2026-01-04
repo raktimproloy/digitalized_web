@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= ebook.title || 'Ebook Reader' %></title>
+    
+    <!-- KaTeX CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .ebook-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative; /* Make it the positioning context for notes */
+        }
+        
+        .ebook-title {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+        }
+        
+        .chapter {
+            margin-bottom: 50px;
+            padding: 30px;
+            background: #fafafa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .chapter-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .chapter-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+        
+        /* Highlighted text styles */
+        .highlight {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            display: inline;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .highlight:hover {
+            background: linear-gradient(120deg, #8fd3f4 0%, #84fab0 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(132, 250, 176, 0.4);
+        }
+        
+        .highlight.active {
+            background: linear-gradient(120deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+        }
+        
+        /* Note popup/tooltip */
+        .note-popup {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .note-popup.active {
+            display: block;
+        }
+        
+        .note-popup .note-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+        
+        .note-popup .note-content {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .note-popup .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .note-popup .close-btn:hover {
+            background: #c0392b;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        /* KaTeX styling adjustments */
+        .katex {
+            font-size: 1.1em;
+        }
+        
+        .katex-display {
+            margin: 20px 0;
+        }
+        
+        /* Figma-like Note System */
+        .notes-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+        
+        /* Ensure buttons are above notes layer */
+        .add-note-btn,
+        .save-notes-btn {
+            z-index: 1001 !important;
+        }
+        
+        .sticky-note {
+            position: absolute;
+            width: 280px;
+            min-height: 150px;
+            background: #fff4cc;
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            pointer-events: all;
+            cursor: move;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            transition: box-shadow 0.2s;
+        }
+        
+        .sticky-note:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .sticky-note.dragging {
+            opacity: 0.8;
+            z-index: 10000;
+        }
+        
+        .sticky-note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ffd700;
+        }
+        
+        .sticky-note-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .sticky-note-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .note-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: background 0.2s;
+        }
+        
+        .note-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        
+        .note-btn.delete {
+            color: #e74c3c;
+        }
+        
+        .note-btn.edit {
+            color: #3498db;
+        }
+        
+        .sticky-note-content {
+            color: #333;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            min-height: 50px;
+        }
+        
+        .sticky-note-content.editable {
+            outline: 2px solid #3498db;
+            outline-offset: 2px;
+            background: white;
+        }
+        
+        .sticky-note-text-reference {
+            font-size: 11px;
+            color: #666;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,215,0,0.3);
+            font-style: italic;
+        }
+        
+        .note-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ffd700;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            pointer-events: all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            transition: transform 0.2s;
+        }
+        
+        .note-marker:hover {
+            transform: scale(1.2);
+        }
+        
+        .add-note-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+            transition: transform 0.2s, box-shadow 0.2s;
+            pointer-events: all;
+        }
+        
+        .add-note-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .add-note-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .save-notes-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 110px;
+            padding: 15px 25px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .save-notes-btn.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .save-notes-btn:hover {
+            background: #229954;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+        }
+        
+        .save-notes-btn.saving {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+        
+        .selection-highlight {
+            background: rgba(102, 126, 234, 0.3);
+            position: absolute;
+            pointer-events: none;
+            z-index: 998;
+        }
+        
+        .note-form-popup {
+            position: fixed;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 12px;
+            padding: 20px;
+            width: 400px;
+            max-width: calc(100vw - 40px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            z-index: 10001;
+            display: none;
+            pointer-events: all;
+        }
+        
+        .note-form-popup.active {
+            display: block !important;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .note-form-popup h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .note-form-popup textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+        
+        .note-form-popup textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .note-form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Add Note Button -->
+    <button type="button" class="add-note-btn" id="addNoteBtn" title="Add Note (Click on page)">+</button>
+    
+    <!-- Save Notes Button -->
+    <button class="save-notes-btn" id="saveNotesBtn">
+        <span>💾</span> Save Notes
+    </button>
+    
+    <!-- Note Form Popup -->
+    <div class="note-form-popup" id="noteFormPopup">
+        <h3>Add Note</h3>
+        <textarea id="noteFormText" placeholder="Enter your note..."></textarea>
+        <div class="note-form-actions">
+            <button class="btn btn-secondary" onclick="cancelNoteForm()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveNoteForm()">Add Note</button>
+        </div>
+    </div>
+    
+    <div class="ebook-container">
+        <!-- Notes Layer - inside container so it scrolls with content -->
+        <div class="notes-layer" id="notesLayer"></div>
+        
+        <h1 class="ebook-title"><%= ebook.title || 'Ebook' %></h1>
+        
+        <% ebook.chapters.forEach(function(chapter) { %>
+            <div class="chapter">
+                <h2 class="chapter-title"><%= chapter.title %></h2>
+                <div class="chapter-content" id="content-<%= chapter.id %>">
+                    <!-- Content will be rendered here by JavaScript -->
+                </div>
+            </div>
+        <% }); %>
+    </div>
+    
+    <!-- Note Popup -->
+    <div class="note-popup" id="notePopup">
+        <button class="close-btn" onclick="closeNote()">&times;</button>
+        <div class="note-title" id="noteTitle"></div>
+        <div class="note-content" id="noteContent"></div>
+    </div>
+    
+    <!-- KaTeX JavaScript -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    
+    <script>
+        // Ebook data passed from server
+        const ebookData = <%- JSON.stringify(ebook) %>;
+        const userId = '<%= userId %>';
+        const initialUserNotes = <%- JSON.stringify(userNotes || []) %>;
+        
+        // User notes management
+        let userNotes = [...initialUserNotes];
+        let notesChanged = false;
+        let noteIdCounter = Date.now();
+        let currentEditingNote = null;
+        let selectedText = null;
+        let selectedPosition = null;
+        let addNoteMode = false; // Make it global
+        
+        // Process and render content with highlights and KaTeX
+        function renderContent() {
+            ebookData.chapters.forEach(chapter => {
+                const contentDiv = document.getElementById(`content-${chapter.id}`);
+                if (!contentDiv) return;
+                
+                // Process text to handle highlights and KaTeX
+                let processedContent = chapter.content;
+                
+                // Replace highlighted text with spans
+                // Pattern 1: *display text*@noteId@ - display text shown, noteId used for lookup
+                processedContent = processedContent.replace(
+                    /\*([^*]+)\*@([^@]+)@/g, 
+                    '<span class="highlight" data-term="$2" data-display="$1" onclick="showNote(\'$2\', this)">$1</span>'
+                );
+                
+                // Pattern 2: *text* - highlighted text, note looked up by text
+                processedContent = processedContent.replace(
+                    /\*([^*]+)\*/g, 
+                    '<span class="highlight" data-term="$1" onclick="showNote(\'$1\', this)">$1</span>'
+                );
+                
+                // Pattern 3: @text@ - alternative highlighting syntax
+                processedContent = processedContent.replace(
+                    /@([^@]+)@/g, 
+                    '<span class="highlight" data-term="$1" onclick="showNote(\'$1\', this)">$1</span>'
+                );
+                
+                // Wrap content in a div for KaTeX rendering
+                contentDiv.innerHTML = processedContent;
+                
+                // Render KaTeX math expressions
+                renderMathInElement(contentDiv, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\[', right: '\\]', display: true},
+                        {left: '\\(', right: '\\)', display: false}
+                    ],
+                    throwOnError: false
+                });
+            });
+        }
+        
+        // Show note popup
+        function showNote(term, element) {
+            const notePopup = document.getElementById('notePopup');
+            const noteTitle = document.getElementById('noteTitle');
+            const noteContent = document.getElementById('noteContent');
+            
+            // Find note in ebookData.notes (case-insensitive search)
+            const termLower = term.toLowerCase();
+            let note = ebookData.notes[termLower];
+            
+            // Try to find with exact match or case-insensitive
+            if (!note) {
+                for (const key in ebookData.notes) {
+                    if (key.toLowerCase() === termLower) {
+                        note = ebookData.notes[key];
+                        break;
+                    }
+                }
+            }
+            
+            if (note) {
+                // Use display text if available, otherwise use term
+                const displayText = element ? element.getAttribute('data-display') : null;
+                noteTitle.textContent = displayText || term;
+                noteContent.textContent = note;
+                
+                // Position popup near clicked element
+                const clickedElement = element || window.event.target;
+                const rect = clickedElement.getBoundingClientRect();
+                
+                notePopup.style.top = (rect.bottom + 10) + 'px';
+                notePopup.style.left = (rect.left) + 'px';
+                
+                // Adjust if popup goes off screen
+                if (rect.left + 400 > window.innerWidth) {
+                    notePopup.style.left = (window.innerWidth - 420) + 'px';
+                }
+                
+                notePopup.classList.add('active');
+                
+                // Add active class to clicked highlight
+                document.querySelectorAll('.highlight').forEach(el => {
+                    el.classList.remove('active');
+                });
+                clickedElement.classList.add('active');
+            }
+        }
+        
+        // Close note popup
+        function closeNote() {
+            const notePopup = document.getElementById('notePopup');
+            notePopup.classList.remove('active');
+            
+            // Remove active class from all highlights
+            document.querySelectorAll('.highlight').forEach(el => {
+                el.classList.remove('active');
+            });
+        }
+        
+        // Close popup when clicking outside
+        document.addEventListener('click', function(event) {
+            const notePopup = document.getElementById('notePopup');
+            if (notePopup && !notePopup.contains(event.target) && 
+                !event.target.classList.contains('highlight')) {
+                closeNote();
+            }
+        });
+        
+        // Initialize when page loads
+        function initializePage() {
+            console.log('Initializing page...');
+            renderContent();
+            
+            // Wait a bit for DOM to be fully ready
+            setTimeout(function() {
+                initializeNotesSystem();
+                renderUserNotes();
+                
+                // Test if button exists
+                const testBtn = document.getElementById('addNoteBtn');
+                if (testBtn) {
+                    console.log('✓ Add note button found!', testBtn);
+                    // Add a simple test click handler
+                    testBtn.addEventListener('click', function() {
+                        console.log('TEST: Button clicked directly!');
+                    });
+                } else {
+                    console.error('✗ Add note button NOT FOUND!');
+                }
+            }, 100);
+        }
+        
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', function() {
+                 if (typeof initializePage === 'function') {
+                     initializePage();
+                 }
+            });
+        } else {
+             if (typeof initializePage === 'function') {
+                 initializePage();
+             }
+        }
+    </script>
+    
+    <!-- Custom JS -->
+    <script src="/js/ebook.js"></script>
+</body>
+</html>
