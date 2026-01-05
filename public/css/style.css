@@ -1,0 +1,554 @@
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .ebook-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative; /* Make it the positioning context for notes */
+        }
+        
+        .ebook-title {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+        }
+        
+        .chapter {
+            margin-bottom: 50px;
+            padding: 30px;
+            background: #fafafa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .chapter-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .chapter-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+        
+        /* Highlighted text styles */
+        .highlight {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            display: inline;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .highlight:hover {
+            background: linear-gradient(120deg, #8fd3f4 0%, #84fab0 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(132, 250, 176, 0.4);
+        }
+        
+        .highlight.active {
+            background: linear-gradient(120deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+        }
+        
+        /* Note popup/tooltip */
+        .note-popup {
+            display: none;
+            position: absolute; /* Changed from absolute to fixed if you want it relative to viewport, but absolute relative to body is fine if calculated correctly. However, for responsiveness and scrolling, fixed might be easier or absolute with correct calculation. Let's stick to absolute but ensure logic is correct. OR switch to fixed to avoid scroll issues. Let's try fixed for better viewport handling. */
+            position: fixed; 
+            top: 0;
+            left: 0;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            width: 300px; /* Fixed width for better control */
+            max-width: 90vw; /* Responsive max width */
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10000; /* Increased z-index */
+            animation: slideIn 0.3s ease;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .ebook-container {
+                padding: 20px;
+                margin: 0;
+                width: 100%;
+                border-radius: 0;
+            }
+            
+            .ebook-title {
+                font-size: 1.8rem;
+            }
+            
+            .chapter {
+                padding: 15px;
+            }
+            
+            .chapter-title {
+                font-size: 1.5rem;
+            }
+            
+            .note-popup {
+                width: 90%;
+                left: 5% !important; /* Force center horizontally on mobile */
+                top: 50% !important;
+                transform: translateY(-50%) !important; /* Center vertically */
+            }
+            
+            .add-note-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            .save-notes-btn {
+                padding: 10px 15px;
+                font-size: 14px;
+                right: 90px;
+            }
+
+            .note-form-popup {
+                width: 90%;
+                left: 5% !important;
+                top: 20% !important;
+            }
+        }
+        
+        .note-popup.active {
+            display: block;
+        }
+        
+        .note-popup .note-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+        
+        .note-popup .note-content {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .note-popup .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .note-popup .close-btn:hover {
+            background: #c0392b;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        /* KaTeX styling adjustments */
+        .katex {
+            font-size: 1.1em;
+        }
+        
+        .katex-display {
+            margin: 20px 0;
+        }
+        
+        /* Figma-like Note System */
+        .notes-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+        
+        /* Ensure buttons are above notes layer */
+        .add-note-btn,
+        .save-notes-btn {
+            z-index: 1001 !important;
+        }
+        
+        .sticky-note {
+            position: absolute;
+            width: 280px;
+            min-height: 150px;
+            background: #fff4cc;
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            pointer-events: all;
+            cursor: move;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            transition: box-shadow 0.2s;
+        }
+        
+        .sticky-note:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .sticky-note.dragging {
+            opacity: 0.8;
+            z-index: 10000;
+        }
+        
+        .sticky-note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ffd700;
+        }
+        
+        .sticky-note-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .sticky-note-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .note-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: background 0.2s;
+        }
+        
+        .note-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        
+        .note-btn.delete {
+            color: #e74c3c;
+        }
+        
+        .note-btn.edit {
+            color: #3498db;
+        }
+        
+        .sticky-note-content {
+            color: #333;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            min-height: 50px;
+        }
+        
+        .sticky-note-content.editable {
+            outline: 2px solid #3498db;
+            outline-offset: 2px;
+            background: white;
+        }
+        
+        .sticky-note-text-reference {
+            font-size: 11px;
+            color: #666;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,215,0,0.3);
+            font-style: italic;
+        }
+        
+        .note-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ffd700;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            pointer-events: all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            transition: transform 0.2s;
+        }
+        
+        .note-marker:hover {
+            transform: scale(1.2);
+        }
+        
+        .fab-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            pointer-events: none; /* Let clicks pass through container area */
+        }
+
+        .add-note-btn {
+            position: relative; /* Changed from fixed */
+            bottom: auto;
+            right: auto;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+            transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.2s;
+            pointer-events: all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-note-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .add-note-btn.active {
+            transform: rotate(45deg);
+            background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
+            box-shadow: 0 4px 15px rgba(255, 95, 109, 0.4);
+        }
+
+        .fab-options {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 15px;
+            margin-bottom: 15px;
+            pointer-events: none;
+        }
+
+        .fab-options.active {
+            pointer-events: all;
+        }
+
+        .fab-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 30px;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px) scale(0.8);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition-delay: 0s;
+            visibility: hidden;
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .fab-options.active .fab-option {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            visibility: visible;
+            transition-delay: var(--delay);
+        }
+
+        .fab-option:hover {
+            transform: scale(1.05);
+            background: #f8f9fa;
+        }
+
+        .option-icon {
+            font-size: 18px;
+        }
+
+        .save-notes-btn {
+            bottom: 30px;
+            right: 110px;
+            padding: 15px 25px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .save-notes-btn.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .save-notes-btn:hover {
+            background: #229954;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+        }
+        
+        .save-notes-btn.saving {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+        
+        .selection-highlight {
+            background: rgba(102, 126, 234, 0.3);
+            position: absolute;
+            pointer-events: none;
+            z-index: 998;
+        }
+        
+        .note-form-popup {
+            position: fixed;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 12px;
+            padding: 20px;
+            width: 400px;
+            max-width: calc(100vw - 40px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            z-index: 10001;
+            display: none;
+            pointer-events: all;
+        }
+        
+        .note-form-popup.active {
+            display: block !important;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .note-form-popup h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .note-form-popup textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+        
+        .note-form-popup textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .note-form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
