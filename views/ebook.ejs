@@ -9,7 +9,66 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/note-styles.css">
+    
+    <style>
+        .highlight-palette {
+            display: none;
+            position: absolute;
+            right: 70px; /* Position to the left of the FAB */
+            bottom: 80px; /* Align with highlight button roughly */
+            background: white;
+            padding: 10px;
+            border-radius: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1002;
+            align-items: center;
+        }
+        
+        .highlight-palette.active {
+            display: flex;
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+            padding: 0;
+        }
+        
+        .color-btn:hover, .color-btn.active {
+            transform: scale(1.2);
+            border-color: #333;
+        }
+        
+        .color-btn.close-palette {
+            background: #eee;
+            color: #666;
+            font-size: 18px;
+            line-height: 26px;
+            font-weight: bold;
+        }
 
+        .user-highlight {
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .user-highlight:hover {
+            filter: brightness(0.95);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
     <!-- Floating Action Button Menu -->
@@ -23,6 +82,13 @@
                 <span class="option-label">Highlight</span>
                 <span class="option-icon">🖍️</span>
             </button>
+            <div class="highlight-palette" id="highlightPalette">
+                <button class="color-btn" style="background-color: #ffff00;" onclick="setHighlightColor('#ffff00')" title="Yellow"></button>
+                <button class="color-btn" style="background-color: #90ee90;" onclick="setHighlightColor('#90ee90')" title="Green"></button>
+                <button class="color-btn" style="background-color: #add8e6;" onclick="setHighlightColor('#add8e6')" title="Blue"></button>
+                <button class="color-btn" style="background-color: #ffb6c1;" onclick="setHighlightColor('#ffb6c1')" title="Pink"></button>
+                <button class="color-btn close-palette" onclick="closeHighlightPalette()">×</button>
+            </div>
             <button class="fab-option" onclick="triggerShare()" style="--delay: 0.3s">
                 <span class="option-label">Share</span>
                 <span class="option-icon">📤</span>
@@ -82,6 +148,8 @@
         let selectedText = null;
         let selectedPosition = null;
         let addNoteMode = false; // Make it global
+        let highlightMode = false;
+        let highlightColor = '#ffff00'; // Default yellow
         
         // Process and render content with highlights and KaTeX
         function renderContent() {
@@ -226,7 +294,6 @@
             
             if (addNoteMode) {
                 container.style.cursor = 'crosshair';
-                alert('Add Note Mode Enabled: Click anywhere on the ebook page to place a note.');
             } else {
                 container.style.cursor = 'default';
             }
@@ -234,8 +301,53 @@
 
         function triggerHighlight() {
             console.log('Highlight triggered');
+            // Toggle palette
+            const palette = document.getElementById('highlightPalette');
+            const wasActive = palette.classList.contains('active');
+            
+            // Close main menu
             toggleFabMenu();
-            alert('Highlight mode enabled. Select text to highlight.');
+            
+            if (!wasActive) {
+                palette.classList.add('active');
+                // Ensure highlight mode is on if palette is opened
+                highlightMode = true;
+                updateHighlightCursor();
+            } else {
+                closeHighlightPalette();
+            }
+        }
+
+        function closeHighlightPalette() {
+            document.getElementById('highlightPalette').classList.remove('active');
+            highlightMode = false;
+            updateHighlightCursor();
+        }
+
+        function setHighlightColor(color) {
+            highlightColor = color;
+            highlightMode = true;
+            
+            // Update UI
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                if (btn.style.backgroundColor === color) { // Note: this check might fail due to color format conversion
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            updateHighlightCursor();
+        }
+
+        function updateHighlightCursor() {
+            const container = document.querySelector('.ebook-container');
+            if (highlightMode) {
+                container.style.cursor = 'text'; // Or a custom highlighter cursor
+                // We could change selection color via CSS, but that's global
+            } else {
+                container.style.cursor = 'default';
+            }
         }
 
         function triggerShare() {
@@ -278,7 +390,191 @@
                 
                 showNoteForm(x, y);
             });
+            
+            initializeHighlightSystem();
         }
+
+        // --- Highlight System Implementation ---
+
+        function initializeHighlightSystem() {
+            // Monitor selection changes
+            document.addEventListener('selectionchange', () => {
+                if (!highlightMode) return;
+                
+                // Debounce selection handling
+                if (window.highlightTimeout) clearTimeout(window.highlightTimeout);
+                window.highlightTimeout = setTimeout(handleHighlightSelection, 500);
+            });
+            
+            // Also handle touch events for mobile better
+            document.addEventListener('touchend', () => {
+                if (highlightMode) {
+                    setTimeout(handleHighlightSelection, 100);
+                }
+            });
+        }
+
+        function handleHighlightSelection() {
+            if (!highlightMode) return;
+
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+
+            const text = selection.toString().trim();
+            if (text.length < 1) return;
+
+            const range = selection.getRangeAt(0);
+            
+            // Ensure we are inside a chapter
+            const chapterContent = range.commonAncestorContainer.nodeType === 1 
+                ? range.commonAncestorContainer.closest('.chapter-content') 
+                : range.commonAncestorContainer.parentElement.closest('.chapter-content');
+
+            if (!chapterContent) return;
+
+            createHighlight(range, text, highlightColor, chapterContent);
+            
+            // Clear selection
+            selection.removeAllRanges();
+        }
+
+        function createHighlight(range, text, color, container) {
+            // Calculate offset
+            // We need a consistent way to find text offset.
+            // Creating a range from the beginning of container to the start of selection
+            const preSelectionRange = document.createRange();
+            preSelectionRange.selectNodeContents(container);
+            preSelectionRange.setEnd(range.startContainer, range.startOffset);
+            
+            const startOffset = preSelectionRange.toString().length;
+            const endOffset = startOffset + text.length;
+            const chapterId = container.id.replace('content-', '');
+
+            const highlight = {
+                id: 'highlight_' + Date.now(),
+                type: 'highlight',
+                text: text,
+                color: color,
+                chapterId: chapterId,
+                startOffset: startOffset,
+                endOffset: endOffset,
+                createdAt: new Date().toISOString()
+            };
+
+            // Apply visual wrap
+            wrapRange(range, highlight.id, color);
+            
+            // Save
+            userNotes.push(highlight);
+            notesChanged = true;
+            triggerAutosave();
+        }
+
+        function wrapRange(range, id, color) {
+            // This is a simple wrapper. Complex ranges (across block elements) might break.
+            // Assuming mostly inline text.
+            
+            try {
+                // If the selection spans multiple nodes, extractContents might be destructive to structure
+                // But surroundContents fails if range partially selects non-text nodes.
+                // Safer: use a highlighter library logic or simple span wrapping if safe.
+                
+                const span = document.createElement('span');
+                span.className = 'user-highlight';
+                span.style.backgroundColor = color;
+                span.dataset.id = id;
+                span.onclick = (e) => handleHighlightClick(e, id);
+                
+                // Check if we can surround
+                try {
+                    range.surroundContents(span);
+                } catch (e) {
+                    // Fallback for complex selections: use extractContents
+                    span.appendChild(range.extractContents());
+                    range.insertNode(span);
+                }
+            } catch (e) {
+                console.error('Failed to highlight:', e);
+            }
+        }
+        
+        function handleHighlightClick(e, id) {
+            // Optional: Show menu to delete highlight
+            e.stopPropagation();
+            if (confirm('Remove this highlight?')) {
+                removeHighlight(id);
+            }
+        }
+        
+        function removeHighlight(id) {
+            // Remove from data
+            userNotes = userNotes.filter(n => n.id !== id);
+            
+            // Remove from DOM (unwrap)
+            const spans = document.querySelectorAll(`.user-highlight[data-id="${id}"]`);
+            spans.forEach(span => {
+                const parent = span.parentNode;
+                while (span.firstChild) parent.insertBefore(span.firstChild, span);
+                parent.removeChild(span);
+            });
+            
+            notesChanged = true;
+            triggerAutosave();
+        }
+
+        function renderUserHighlights() {
+            // Apply all saved highlights
+            const highlights = userNotes.filter(n => n.type === 'highlight');
+            
+            highlights.forEach(h => {
+                const container = document.getElementById(`content-${h.chapterId}`);
+                if (!container) return;
+                
+                restoreHighlight(container, h.startOffset, h.endOffset, h.id, h.color);
+            });
+        }
+        
+        function restoreHighlight(container, start, end, id, color) {
+            // Find the text nodes and range corresponding to start/end offsets
+            const range = document.createRange();
+            let currentOffset = 0;
+            let startNode = null, startOffset = 0;
+            let endNode = null, endOffset = 0;
+            
+            // Helper to walk text nodes
+            function walk(node) {
+                if (node.nodeType === 3) { // Text node
+                    const len = node.length;
+                    
+                    if (!startNode && currentOffset + len >= start) {
+                        startNode = node;
+                        startOffset = start - currentOffset;
+                    }
+                    
+                    if (!endNode && currentOffset + len >= end) {
+                        endNode = node;
+                        endOffset = end - currentOffset;
+                        return true; // Done
+                    }
+                    
+                    currentOffset += len;
+                } else {
+                    for (let i = 0; i < node.childNodes.length; i++) {
+                        if (walk(node.childNodes[i])) return true;
+                    }
+                }
+                return false;
+            }
+            
+            walk(container);
+            
+            if (startNode && endNode) {
+                range.setStart(startNode, startOffset);
+                range.setEnd(endNode, endOffset);
+                wrapRange(range, id, color);
+            }
+        }
+
 
         function showNoteForm(x, y) {
             const popup = document.getElementById('noteFormPopup');
@@ -556,6 +852,7 @@
             setTimeout(function() {
                 initializeNotesSystem();
                 renderUserNotes();
+                renderUserHighlights();
                 
                 // Test if button exists
                 const testBtn = document.getElementById('addNoteBtn');

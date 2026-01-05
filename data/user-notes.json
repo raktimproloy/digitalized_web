@@ -6,6 +6,60 @@
       "x": 271,
       "y": 314,
       "createdAt": "2026-01-05T03:34:48.773Z"
+    },
+    {
+      "id": "note_1767584779761",
+      "content": "test",
+      "x": 559.453125,
+      "y": 272.0625,
+      "createdAt": "2026-01-05T03:46:19.761Z"
+    },
+    {
+      "id": "note_1767585019073",
+      "content": "kljl",
+      "x": 114,
+      "y": 272.0625,
+      "createdAt": "2026-01-05T03:50:19.073Z"
+    },
+    {
+      "id": "highlight_1767587233454",
+      "type": "highlight",
+      "text": "determinant of a \n2\n×\n2\n2×2 matrix \n𝐴\n=\n(\n𝑎\n𝑏\n𝑐\n𝑑\n)\nA=( \na\nc\n​\n  \nb\nd\n​\n ) is",
+      "color": "#ffff00",
+      "chapterId": "3",
+      "startOffset": 315,
+      "endOffset": 397,
+      "createdAt": "2026-01-05T04:27:13.454Z"
+    },
+    {
+      "id": "highlight_1767587238956",
+      "type": "highlight",
+      "text": "Matrix",
+      "color": "#ffff00",
+      "chapterId": "3",
+      "startOffset": 181,
+      "endOffset": 187,
+      "createdAt": "2026-01-05T04:27:18.956Z"
+    },
+    {
+      "id": "highlight_1767587241992",
+      "type": "highlight",
+      "text": "multiplication follows the rule: if \n𝐴\nA is \n𝑚\n×\n𝑛\nm×n and \n𝐵\nB is \n𝑛\n×\n𝑝\nn×p, then \n𝐴\n𝐵\nAB is \n𝑚\n×\n𝑝\nm×p.",
+      "color": "#ffff00",
+      "chapterId": "3",
+      "startOffset": 188,
+      "endOffset": 304,
+      "createdAt": "2026-01-05T04:27:21.992Z"
+    },
+    {
+      "id": "highlight_1767587292791",
+      "type": "highlight",
+      "text": "is",
+      "color": "#90ee90",
+      "chapterId": "2",
+      "startOffset": 241,
+      "endOffset": 243,
+      "createdAt": "2026-01-05T04:28:12.791Z"
     }
   ],
   "456": []
