@@ -13,17 +13,29 @@
     <style>
         .highlight-palette {
             display: none;
-            position: absolute;
-            right: 70px; /* Position to the left of the FAB */
-            bottom: 80px; /* Align with highlight button roughly */
+            position: fixed; /* Changed to fixed for dragging */
+            top: 20%;
+            right: 20px;
             background: white;
             padding: 10px;
             border-radius: 25px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             flex-direction: column;
             gap: 8px;
-            z-index: 1002;
+            z-index: 10000; /* Higher z-index */
             align-items: center;
+            touch-action: none; /* Prevent scrolling while dragging */
+        }
+        
+        .palette-handle {
+            cursor: move;
+            color: #ccc;
+            font-size: 12px;
+            letter-spacing: 2px;
+            padding: 5px;
+            width: 100%;
+            text-align: center;
+            user-select: none;
         }
         
         .highlight-palette.active {
@@ -83,6 +95,7 @@
                 <span class="option-icon">🖍️</span>
             </button>
             <div class="highlight-palette" id="highlightPalette">
+                <div class="palette-handle">⋮⋮</div>
                 <button class="color-btn" style="background-color: #ffff00;" onclick="setHighlightColor('#ffff00')" title="Yellow"></button>
                 <button class="color-btn" style="background-color: #90ee90;" onclick="setHighlightColor('#90ee90')" title="Green"></button>
                 <button class="color-btn" style="background-color: #add8e6;" onclick="setHighlightColor('#add8e6')" title="Blue"></button>
@@ -328,12 +341,22 @@
             highlightColor = color;
             highlightMode = true;
             
-            // Update UI
+            // Update UI - use RGB comparison because style.backgroundColor converts hex to rgb
             document.querySelectorAll('.color-btn').forEach(btn => {
-                if (btn.style.backgroundColor === color) { // Note: this check might fail due to color format conversion
+                // Reset active
+                btn.classList.remove('active');
+                
+                // Check if this button matches the selected color
+                // Create a temporary element to standardize color format
+                const temp = document.createElement('div');
+                temp.style.color = color;
+                document.body.appendChild(temp);
+                const computedColor = window.getComputedStyle(temp).color;
+                document.body.removeChild(temp);
+                
+                if (btn.style.backgroundColor === computedColor || 
+                    btn.getAttribute('onclick').includes(color)) {
                     btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
                 }
             });
             
@@ -392,6 +415,71 @@
             });
             
             initializeHighlightSystem();
+            makePaletteDraggable();
+        }
+
+        function makePaletteDraggable() {
+            const palette = document.getElementById('highlightPalette');
+            const handle = palette.querySelector('.palette-handle');
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+            let xOffset = 0;
+            let yOffset = 0;
+
+            handle.addEventListener('mousedown', dragStart);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', dragEnd);
+            
+            // Touch events for mobile
+            handle.addEventListener('touchstart', dragStart, {passive: false});
+            document.addEventListener('touchmove', drag, {passive: false});
+            document.addEventListener('touchend', dragEnd);
+
+            function dragStart(e) {
+                if (e.type === 'touchstart') {
+                    initialX = e.touches[0].clientX - xOffset;
+                    initialY = e.touches[0].clientY - yOffset;
+                } else {
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                }
+
+                if (e.target === handle) {
+                    isDragging = true;
+                }
+            }
+
+            function drag(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    
+                    if (e.type === 'touchmove') {
+                        currentX = e.touches[0].clientX - initialX;
+                        currentY = e.touches[0].clientY - initialY;
+                    } else {
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                    }
+
+                    xOffset = currentX;
+                    yOffset = currentY;
+
+                    setTranslate(currentX, currentY, palette);
+                }
+            }
+
+            function setTranslate(xPos, yPos, el) {
+                el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+            }
+
+            function dragEnd(e) {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+            }
         }
 
         // --- Highlight System Implementation ---
@@ -659,17 +747,22 @@
             const layer = document.getElementById('notesLayer');
             if (!layer) return;
             layer.innerHTML = '';
-            userNotes.forEach(renderSingleNote);
+            // Filter out highlights, only render sticky notes
+            const notes = userNotes.filter(n => n.type !== 'highlight');
+            notes.forEach(renderSingleNote);
         }
 
         function renderSingleNote(note) {
+            // Safety check
+            if (note.type === 'highlight') return;
+            
             const layer = document.getElementById('notesLayer');
             
             const noteEl = document.createElement('div');
             noteEl.className = 'sticky-note'; // Default is collapsed
             noteEl.id = `note-${note.id}`;
-            noteEl.style.left = note.x + 'px';
-            noteEl.style.top = note.y + 'px';
+            noteEl.style.left = (note.x || 0) + 'px';
+            noteEl.style.top = (note.y || 0) + 'px';
             
             // Add click handler to toggle expand
             noteEl.addEventListener('click', function(e) {
@@ -850,9 +943,13 @@
             
             // Wait a bit for DOM to be fully ready
             setTimeout(function() {
-                initializeNotesSystem();
-                renderUserNotes();
-                renderUserHighlights();
+                try {
+                    initializeNotesSystem();
+                    renderUserNotes();
+                    renderUserHighlights();
+                } catch (e) {
+                    console.error('Error initializing user data:', e);
+                }
                 
                 // Test if button exists
                 const testBtn = document.getElementById('addNoteBtn');
