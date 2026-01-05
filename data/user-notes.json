@@ -16,6 +16,36 @@
       "x": 228,
       "y": 217,
       "createdAt": "2026-01-05T04:35:18.451Z"
+    },
+    {
+      "id": "highlight_1767588422506",
+      "type": "highlight",
+      "text": "manipulating these symbols. The equation \n𝑥\n2\n+\n5\n𝑥\n+\n6\n=\n0\nx \n2\n +5x+6=0",
+      "color": "#90ee90",
+      "chapterId": "1",
+      "startOffset": 79,
+      "endOffset": 154,
+      "createdAt": "2026-01-05T04:47:02.506Z"
+    },
+    {
+      "id": "highlight_1767588428507",
+      "type": "highlight",
+      "text": "The solution involves finding values of \n𝑥\nx that satisfy the equation: \n𝑥\n=\n−\n2\nx=−2 or \n𝑥\n=\n−\n3\nx=",
+      "color": "#90ee90",
+      "chapterId": "1",
+      "startOffset": 289,
+      "endOffset": 392,
+      "createdAt": "2026-01-05T04:47:08.507Z"
+    },
+    {
+      "id": "highlight_1767588432921",
+      "type": "highlight",
+      "text": "When we solve \n𝑎\n𝑥\n2\n+\n𝑏\n𝑥\n+\n𝑐\n=\n0\nax \n2\n +bx+c=0, we use the quadratic formula:",
+      "color": "#ffb6c1",
+      "chapterId": "1",
+      "startOffset": 395,
+      "endOffset": 480,
+      "createdAt": "2026-01-05T04:47:12.921Z"
     }
   ],
   "456": []

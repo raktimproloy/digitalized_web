@@ -94,14 +94,6 @@
                 <span class="option-label">Highlight</span>
                 <span class="option-icon">🖍️</span>
             </button>
-            <div class="highlight-palette" id="highlightPalette">
-                <div class="palette-handle">⋮⋮</div>
-                <button class="color-btn" style="background-color: #ffff00;" onclick="setHighlightColor('#ffff00')" title="Yellow"></button>
-                <button class="color-btn" style="background-color: #90ee90;" onclick="setHighlightColor('#90ee90')" title="Green"></button>
-                <button class="color-btn" style="background-color: #add8e6;" onclick="setHighlightColor('#add8e6')" title="Blue"></button>
-                <button class="color-btn" style="background-color: #ffb6c1;" onclick="setHighlightColor('#ffb6c1')" title="Pink"></button>
-                <button class="color-btn close-palette" onclick="closeHighlightPalette()">×</button>
-            </div>
             <button class="fab-option" onclick="triggerShare()" style="--delay: 0.3s">
                 <span class="option-label">Share</span>
                 <span class="option-icon">📤</span>
@@ -110,6 +102,15 @@
         <button type="button" class="add-note-btn" id="addNoteBtn" onclick="toggleFabMenu()" title="Menu">+</button>
     </div>
     
+    <div class="highlight-palette" id="highlightPalette">
+        <div class="palette-handle">⋮⋮</div>
+        <button class="color-btn" style="background-color: #ffff00;" onclick="setHighlightColor('#ffff00')" title="Yellow"></button>
+        <button class="color-btn" style="background-color: #90ee90;" onclick="setHighlightColor('#90ee90')" title="Green"></button>
+        <button class="color-btn" style="background-color: #add8e6;" onclick="setHighlightColor('#add8e6')" title="Blue"></button>
+        <button class="color-btn" style="background-color: #ffb6c1;" onclick="setHighlightColor('#ffb6c1')" title="Pink"></button>
+        <button class="color-btn close-palette" onclick="closeHighlightPalette()">×</button>
+    </div>
+
     <!-- Note Form Popup -->
     <div class="note-form-popup" id="noteFormPopup">
         <h3>Add Note</h3>
