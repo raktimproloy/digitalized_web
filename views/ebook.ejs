@@ -76,6 +76,137 @@
             filter: brightness(0.95);
         }
 
+        .highlight-menu {
+            position: absolute; /* or fixed, depending on implementation */
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            padding: 8px;
+            display: flex;
+            gap: 10px;
+            z-index: 11000;
+            align-items: center;
+        }
+
+        .highlight-menu.hidden {
+            display: none;
+        }
+
+        .highlight-menu-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+        }
+
+        .highlight-menu-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .highlight-menu-btn.delete {
+            color: #ff4d4f;
+        }
+
+        .highlight-menu-btn.add {
+            color: #1890ff;
+        }
+
+        .highlight-menu-btn.view {
+            color: #52c41a;
+        }
+
+        /* Modal Styles */
+        .note-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 12000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .note-modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .note-modal {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+            overflow: hidden;
+        }
+        
+        .note-modal-overlay.active .note-modal {
+            transform: translateY(0);
+        }
+        
+        .note-modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9f9f9;
+        }
+        
+        .note-modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .close-modal-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .close-modal-btn:hover {
+            color: #333;
+        }
+        
+        .note-modal-content {
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            max-height: 60vh;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .note-modal-actions {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background: #f9f9f9;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -109,6 +240,24 @@
         <button class="color-btn" style="background-color: #add8e6;" onclick="setHighlightColor('#add8e6')" title="Blue"></button>
         <button class="color-btn" style="background-color: #ffb6c1;" onclick="setHighlightColor('#ffb6c1')" title="Pink"></button>
         <button class="color-btn close-palette" onclick="closeHighlightPalette()">×</button>
+    </div>
+
+    <!-- Highlight Menu -->
+    <div id="highlightMenu" class="highlight-menu hidden"></div>
+
+    <!-- View Note Modal -->
+    <div class="note-modal-overlay" id="noteModalOverlay">
+        <div class="note-modal">
+            <div class="note-modal-header">
+                <h3>Note</h3>
+                <button class="close-modal-btn" onclick="closeNoteModal()">×</button>
+            </div>
+            <div class="note-modal-content" id="noteModalContent"></div>
+            <div class="note-modal-actions">
+                <button class="btn btn-secondary" onclick="deleteHighlightNote()">Delete Note</button>
+                <button class="btn btn-primary" onclick="editHighlightNote()">Edit Note</button>
+            </div>
+        </div>
     </div>
 
     <!-- Note Form Popup -->
@@ -159,6 +308,7 @@
         let notesChanged = false;
         let noteIdCounter = Date.now();
         let currentEditingNote = null;
+        let currentHighlightId = null; // Track selected highlight
         let selectedText = null;
         let selectedPosition = null;
         let addNoteMode = false; // Make it global
@@ -557,6 +707,16 @@
             userNotes.push(highlight);
             notesChanged = true;
             triggerAutosave();
+            
+            // Show menu immediately
+            setTimeout(() => {
+                 const el = document.querySelector(`.user-highlight[data-id="${highlight.id}"]`);
+                 if (el) {
+                     const rect = el.getBoundingClientRect();
+                     const event = { clientX: rect.left + rect.width/2, clientY: rect.top };
+                     showHighlightMenu(event, highlight.id);
+                 }
+            }, 50);
         }
 
         function wrapRange(range, id, color) {
@@ -588,12 +748,141 @@
         }
         
         function handleHighlightClick(e, id) {
-            // Optional: Show menu to delete highlight
             e.stopPropagation();
-            if (confirm('Remove this highlight?')) {
-                removeHighlight(id);
+            showHighlightMenu(e, id);
+        }
+
+        function showHighlightMenu(e, id) {
+            const menu = document.getElementById('highlightMenu');
+            const highlight = userNotes.find(n => n.id === id);
+            
+            if (!highlight) return;
+
+            currentHighlightId = id;
+            
+            // Build Menu Content
+            let html = '';
+            
+            if (highlight.note) {
+                // Show Eye Icon + Cross
+                html += `<button class="highlight-menu-btn view" onclick="openNoteModal('${id}'); hideHighlightMenu()" title="View Note">👁️</button>`;
+                html += `<button class="highlight-menu-btn delete" onclick="removeHighlight('${id}'); hideHighlightMenu()" title="Delete">❌</button>`;
+            } else {
+                // Show Plus + Cross
+                html += `<button class="highlight-menu-btn add" onclick="addNoteToHighlight('${id}')" title="Add Note">➕</button>`;
+                html += `<button class="highlight-menu-btn delete" onclick="removeHighlight('${id}'); hideHighlightMenu()" title="Delete">❌</button>`;
+            }
+            
+            menu.innerHTML = html;
+            menu.classList.remove('hidden');
+            
+            // Position Menu
+            let x, y;
+            if (e.clientX && e.clientY) {
+                 x = e.clientX;
+                 y = e.clientY;
+            } else {
+                 // Fallback: Find element
+                 const el = document.querySelector(`.user-highlight[data-id="${id}"]`);
+                 if (el) {
+                     const rect = el.getBoundingClientRect();
+                     x = rect.left + (rect.width / 2);
+                     y = rect.top;
+                 } else {
+                     x = window.innerWidth / 2;
+                     y = window.innerHeight / 2;
+                 }
+            }
+
+            // Adjust for scrolling and window bounds
+             menu.style.position = 'fixed';
+             menu.style.left = `${x}px`;
+             menu.style.top = `${y - 50}px`; // Show above
+        }
+
+        function openNoteModal(id) {
+            const highlight = userNotes.find(n => n.id === id);
+            if (!highlight || !highlight.note) return;
+            
+            currentHighlightId = id;
+            document.getElementById('noteModalContent').innerHTML = escapeHtml(highlight.note);
+            document.getElementById('noteModalOverlay').classList.add('active');
+        }
+
+        function closeNoteModal() {
+            document.getElementById('noteModalOverlay').classList.remove('active');
+            currentHighlightId = null;
+        }
+        
+        // Close modal when clicking overlay
+        document.getElementById('noteModalOverlay').addEventListener('click', (e) => {
+            if (e.target.id === 'noteModalOverlay') {
+                closeNoteModal();
+            }
+        });
+
+        function editHighlightNote() {
+            if (!currentHighlightId) return;
+            
+            // Close modal
+            document.getElementById('noteModalOverlay').classList.remove('active');
+            
+            // Open form to edit
+            addNoteToHighlight(currentHighlightId);
+        }
+
+        function deleteHighlightNote() {
+            if (!currentHighlightId) return;
+            
+            if (confirm('Delete this note? (Highlight will remain)')) {
+                const highlight = userNotes.find(n => n.id === currentHighlightId);
+                if (highlight) {
+                    delete highlight.note;
+                    highlight.updatedAt = new Date().toISOString();
+                    notesChanged = true;
+                    triggerAutosave();
+                }
+                closeNoteModal();
             }
         }
+
+        function hideHighlightMenu() {
+            document.getElementById('highlightMenu').classList.add('hidden');
+            currentHighlightId = null;
+        }
+
+        // Hide menu when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#highlightMenu') && !e.target.closest('.user-highlight')) {
+                hideHighlightMenu();
+            }
+        });
+
+        function addNoteToHighlight(id) {
+            hideHighlightMenu();
+            currentHighlightId = id; // Set it again as hide cleared it
+            
+            const highlight = userNotes.find(n => n.id === id);
+            const el = document.querySelector(`.user-highlight[data-id="${id}"]`);
+            
+            let x = 0, y = 0;
+            if (el) {
+                const rect = el.getBoundingClientRect();
+                const container = document.querySelector('.ebook-container');
+                const containerRect = container.getBoundingClientRect();
+                x = rect.left - containerRect.left;
+                y = rect.top - containerRect.top;
+            }
+             
+             // Open form
+             showNoteForm(x, y);
+             
+             // Pre-fill if exists
+             if (highlight && highlight.note) {
+                 document.getElementById('noteFormText').value = highlight.note;
+             }
+        }
+
         
         function removeHighlight(id) {
             // Remove from data
@@ -698,8 +987,16 @@
             if (!text) return;
             
             try {
-                if (currentEditingNote) {
-                    // Update existing
+                if (currentHighlightId) {
+                    // Update existing highlight note
+                    const highlight = userNotes.find(n => n.id === currentHighlightId);
+                    if (highlight) {
+                        highlight.note = text;
+                        highlight.updatedAt = new Date().toISOString();
+                    }
+                    currentHighlightId = null;
+                } else if (currentEditingNote) {
+                    // Update existing note
                     currentEditingNote.content = text;
                     currentEditingNote.updatedAt = new Date().toISOString();
                     

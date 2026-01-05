@@ -1,51 +1,24 @@
 {
   "123": [
     {
-      "id": "highlight_1767587711402",
-      "type": "highlight",
-      "text": "In mathematics, algebra is the study of mathematical symbols and the rules for",
-      "color": "#ffff00",
-      "chapterId": "1",
-      "startOffset": 0,
-      "endOffset": 78,
-      "createdAt": "2026-01-05T04:35:11.402Z"
+      "id": "note_1767588633069",
+      "content": "Test hojh",
+      "x": 172,
+      "y": 233,
+      "createdAt": "2026-01-05T04:50:33.070Z",
+      "updatedAt": "2026-01-05T04:50:50.405Z"
     },
     {
-      "id": "note_1767587718451",
-      "content": "Test",
-      "x": 228,
-      "y": 217,
-      "createdAt": "2026-01-05T04:35:18.451Z"
-    },
-    {
-      "id": "highlight_1767588422506",
+      "id": "highlight_1767588672304",
       "type": "highlight",
-      "text": "manipulating these symbols. The equation \n𝑥\n2\n+\n5\n𝑥\n+\n6\n=\n0\nx \n2\n +5x+6=0",
-      "color": "#90ee90",
+      "text": "solution involves finding values of \n𝑥\nx that satisfy the equation: \n𝑥\n=\n−\n2\nx=−2 or \n𝑥\n=\n−\n3\nx=−3.",
+      "color": "#add8e6",
       "chapterId": "1",
-      "startOffset": 79,
-      "endOffset": 154,
-      "createdAt": "2026-01-05T04:47:02.506Z"
-    },
-    {
-      "id": "highlight_1767588428507",
-      "type": "highlight",
-      "text": "The solution involves finding values of \n𝑥\nx that satisfy the equation: \n𝑥\n=\n−\n2\nx=−2 or \n𝑥\n=\n−\n3\nx=",
-      "color": "#90ee90",
-      "chapterId": "1",
-      "startOffset": 289,
-      "endOffset": 392,
-      "createdAt": "2026-01-05T04:47:08.507Z"
-    },
-    {
-      "id": "highlight_1767588432921",
-      "type": "highlight",
-      "text": "When we solve \n𝑎\n𝑥\n2\n+\n𝑏\n𝑥\n+\n𝑐\n=\n0\nax \n2\n +bx+c=0, we use the quadratic formula:",
-      "color": "#ffb6c1",
-      "chapterId": "1",
-      "startOffset": 395,
-      "endOffset": 480,
-      "createdAt": "2026-01-05T04:47:12.921Z"
+      "startOffset": 293,
+      "endOffset": 395,
+      "createdAt": "2026-01-05T04:51:12.304Z",
+      "note": "Hff. Hgvnig.",
+      "updatedAt": "2026-01-05T04:54:19.730Z"
     }
   ],
   "456": []
