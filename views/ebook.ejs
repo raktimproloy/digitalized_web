@@ -236,10 +236,17 @@
         .sticky-note.dragging {
             cursor: move;
             user-select: none; /* Prevent text selection while dragging */
+            transition: none !important; /* Remove lag during drag */
+            z-index: 10000; /* Ensure it stays on top */
         }
         
         .sticky-note.dragging .sticky-note-content {
             pointer-events: none; /* Disable interaction with content while dragging */
+        }
+
+        /* Ensure header doesn't show move cursor by default since we use hold-to-drag */
+        .sticky-note .sticky-note-header {
+            cursor: pointer; 
         }
 
         @keyframes fadeIn {
@@ -1184,11 +1191,11 @@
                 pos3 = clientX;
                 pos4 = clientY;
                 
-                // Start Hold Timer (500ms)
+                // Start Hold Timer (200ms) - Faster response
                 isDragMode = false;
                 holdTimer = setTimeout(() => {
                     startDragMode(e);
-                }, 500);
+                }, 200);
 
                 // Add temporary listeners to detect movement (cancel hold) or release
                 if (e.type.includes('touch')) {
