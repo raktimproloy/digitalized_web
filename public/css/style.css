@@ -227,19 +227,8 @@
         }
         
         .sticky-note {
-            position: absolute;
-            width: 280px;
-            min-height: 150px;
-            background: #fff4cc;
-            border: 2px solid #ffd700;
-            border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            pointer-events: all;
-            cursor: move;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 14px;
-            transition: box-shadow 0.2s;
+            /* Styles moved to note-styles.css to override */
+            display: none; /* Just to be safe, though note-styles.css should load after */
         }
         
         .sticky-note:hover {

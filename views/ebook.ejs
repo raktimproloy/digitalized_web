@@ -8,6 +8,7 @@
     <!-- KaTeX CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/note-styles.css">
 
 </head>
 <body>
@@ -257,6 +258,11 @@
             
             // Handle clicks for adding notes
             container.addEventListener('click', function(e) {
+                // If clicking outside any note, collapse all notes
+                if (!e.target.closest('.sticky-note')) {
+                    collapseAllNotes();
+                }
+
                 if (!addNoteMode) return;
                 
                 // Don't trigger if clicking on existing note or control
@@ -364,11 +370,26 @@
             const layer = document.getElementById('notesLayer');
             
             const noteEl = document.createElement('div');
-            noteEl.className = 'sticky-note';
+            noteEl.className = 'sticky-note'; // Default is collapsed
             noteEl.id = `note-${note.id}`;
             noteEl.style.left = note.x + 'px';
             noteEl.style.top = note.y + 'px';
             
+            // Add click handler to toggle expand
+            noteEl.addEventListener('click', function(e) {
+                // Prevent bubbling to container which might trigger other actions
+                e.stopPropagation();
+                
+                // If we are dragging, don't toggle
+                if (noteEl.classList.contains('dragging')) return;
+                
+                // If clicking buttons inside, don't toggle (handled by specific listeners)
+                if (e.target.closest('.note-btn')) return;
+
+                // Expand this note
+                expandNote(note.id);
+            });
+
             noteEl.innerHTML = `
                 <div class="sticky-note-header">
                     <span class="sticky-note-title">Note</span>
@@ -384,6 +405,26 @@
             makeDraggable(noteEl, note.id);
             
             layer.appendChild(noteEl);
+        }
+
+        function expandNote(id) {
+            // Collapse all other notes first
+            document.querySelectorAll('.sticky-note').forEach(el => {
+                if (el.id !== `note-${id}`) {
+                    el.classList.remove('expanded');
+                }
+            });
+
+            const noteEl = document.getElementById(`note-${id}`);
+            if (noteEl) {
+                noteEl.classList.add('expanded');
+            }
+        }
+        
+        function collapseAllNotes() {
+            document.querySelectorAll('.sticky-note').forEach(el => {
+                el.classList.remove('expanded');
+            });
         }
 
         function makeDraggable(element, noteId) {
