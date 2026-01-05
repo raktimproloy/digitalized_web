@@ -765,7 +765,7 @@
             
             if (highlight.note) {
                 // Show Eye Icon + Cross
-                html += `<button class="highlight-menu-btn view" onclick="openNoteModal('${id}'); hideHighlightMenu()" title="View Note">👁️</button>`;
+                html += `<button class="highlight-menu-btn view" onclick="openNoteModal('${id}')" title="View Note">👁️</button>`;
                 html += `<button class="highlight-menu-btn delete" onclick="removeHighlight('${id}'); hideHighlightMenu()" title="Delete">❌</button>`;
             } else {
                 // Show Plus + Cross
@@ -803,6 +803,9 @@
         function openNoteModal(id) {
             const highlight = userNotes.find(n => n.id === id);
             if (!highlight || !highlight.note) return;
+            
+            // Hide menu manually without clearing ID
+            document.getElementById('highlightMenu').classList.add('hidden');
             
             currentHighlightId = id;
             document.getElementById('noteModalContent').innerHTML = escapeHtml(highlight.note);
@@ -853,7 +856,10 @@
 
         // Hide menu when clicking elsewhere
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('#highlightMenu') && !e.target.closest('.user-highlight')) {
+            if (!e.target.closest('#highlightMenu') && 
+                !e.target.closest('.user-highlight') &&
+                !e.target.closest('#noteFormPopup') &&
+                !e.target.closest('#noteModalOverlay')) {
                 hideHighlightMenu();
             }
         });
@@ -1136,8 +1142,27 @@
                 pos3 = e.clientX;
                 pos4 = e.clientY;
                 
-                const newTop = (element.offsetTop - pos2);
-                const newLeft = (element.offsetLeft - pos1);
+                let newTop = (element.offsetTop - pos2);
+                let newLeft = (element.offsetLeft - pos1);
+                
+                // Boundary checks
+                const container = document.querySelector('.ebook-container');
+                const containerRect = container.getBoundingClientRect();
+                
+                // Keep within horizontal bounds
+                if (newLeft < 0) newLeft = 0;
+                if (newLeft + element.offsetWidth > containerRect.width) {
+                    newLeft = containerRect.width - element.offsetWidth;
+                }
+                
+                // Keep within vertical bounds (at least top)
+                if (newTop < 0) newTop = 0;
+                // Allow scrolling down, but maybe limit to bottom if strictly needed
+                // For now, preventing top overflow is most important for "outside main view"
+                // and ensuring it doesn't go too far right.
+                if (newTop + element.offsetHeight > containerRect.height) {
+                     newTop = containerRect.height - element.offsetHeight;
+                }
                 
                 element.style.top = newTop + 'px';
                 element.style.left = newLeft + 'px';
