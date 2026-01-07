@@ -1,0 +1,280 @@
+const Book = require('../models/Book');
+const Chapter = require('../models/Chapter');
+const Topic = require('../models/Topic');
+const mongoose = require('mongoose');
+
+/**
+ * Helper function to fetch topic with all connected data (chapter and book)
+ */
+const fetchTopicWithConnections = async (topic) => {
+  const topicId = topic.id || topic._id.toString();
+  const chapterId = topic.chapterId;
+  const bookId = topic.bookId;
+  
+  // Fetch chapter data
+  let chapter = null;
+  if (chapterId) {
+    chapter = await Chapter.collection.findOne({ id: chapterId });
+    if (!chapter) {
+      chapter = await Chapter.collection.findOne({ _id: chapterId });
+    }
+  }
+  topic.chapter = chapter;
+  
+  // Fetch book data
+  let book = null;
+  if (bookId) {
+    book = await Book.collection.findOne({ id: bookId });
+    if (!book) {
+      book = await Book.collection.findOne({ _id: bookId });
+    }
+  }
+  topic.book = book;
+  
+  return topic;
+};
+
+/**
+ * Create a new topic (with bookId and chapterId)
+ * POST /api/topics
+ */
+const createTopic = async (req, res) => {
+  try {
+    console.log('Request body:', req.body);
+    
+    // Check if database is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected',
+        message: 'Please wait for the database connection to be established',
+      });
+    }
+    
+    // Accept single topic object directly
+    const topicData = { ...req.body };
+    
+    // Validate bookId and chapterId are provided
+    if (!topicData.bookId) {
+      return res.status(400).json({
+        success: false,
+        error: 'bookId is required',
+      });
+    }
+    
+    if (!topicData.chapterId) {
+      return res.status(400).json({
+        success: false,
+        error: 'chapterId is required',
+      });
+    }
+    
+    // Check if topic already exists by id
+    if (topicData.id) {
+      const existingTopic = await Topic.collection.findOne({ id: topicData.id });
+      if (existingTopic) {
+        // Fetch all connected data
+        const topicWithConnections = await fetchTopicWithConnections(existingTopic);
+        return res.status(200).json({
+          success: true,
+          message: 'Topic already exists',
+          data: [topicWithConnections],
+        });
+      }
+    }
+    
+    // Add timestamps if not provided
+    const now = new Date();
+    if (!topicData.createdAt) topicData.createdAt = now;
+    if (!topicData.updatedAt) topicData.updatedAt = now;
+    
+    // Insert topic directly into collection (no validation)
+    const topicResult = await Topic.collection.insertOne(topicData);
+    
+    // Fetch the created topic
+    let topic = await Topic.collection.findOne({ _id: topicResult.insertedId });
+    
+    // Fetch all connected data
+    const topicWithConnections = await fetchTopicWithConnections(topic);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Topic created successfully',
+      data: [topicWithConnections],
+    });
+  } catch (error) {
+    // Log the full error for debugging
+    console.error('Error creating topic:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Handle duplicate key error - find and return existing document
+    if (error.code === 11000) {
+      let existingTopic = null;
+      
+      // Try to find by id if it was in the request
+      if (req.body.id) {
+        existingTopic = await Topic.collection.findOne({ id: req.body.id });
+      }
+      
+      // If we found the existing topic, return success with it
+      if (existingTopic) {
+        const topicWithConnections = await fetchTopicWithConnections(existingTopic);
+        return res.status(200).json({
+          success: true,
+          message: 'Topic already exists',
+          data: [topicWithConnections],
+        });
+      }
+      
+      // If we couldn't find it, return generic duplicate error
+      return res.status(200).json({
+        success: true,
+        message: 'Topic already exists',
+        data: [],
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+  }
+};
+
+/**
+ * Get topic by id with all connected data (chapter and book)
+ * GET /api/topics/:id
+ */
+const getTopic = async (req, res) => {
+  try {
+    const topicId = req.params.id;
+
+    if (!topicId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Topic id is required',
+      });
+    }
+
+    // Find topic by id field or _id
+    let topic = await Topic.collection.findOne({ id: topicId });
+    if (!topic) {
+      topic = await Topic.collection.findOne({ _id: topicId });
+    }
+
+    if (!topic) {
+      return res.status(404).json({
+        success: false,
+        error: 'Topic not found',
+      });
+    }
+
+    // Fetch all connected data (chapter and book)
+    const topicWithConnections = await fetchTopicWithConnections(topic);
+
+    res.status(200).json({
+      success: true,
+      data: [topicWithConnections],
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Get all topics with all connected data
+ * GET /api/topics
+ */
+const getAllTopics = async (req, res) => {
+  try {
+    const topics = await Topic.collection.find({}).sort({ createdAt: -1 }).toArray();
+
+    // For each topic, fetch all connected data
+    for (const topic of topics) {
+      await fetchTopicWithConnections(topic);
+    }
+
+    res.status(200).json({
+      success: true,
+      count: topics.length,
+      data: topics,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Update topic by id
+ * PUT /api/topics/:id
+ * PATCH /api/topics/:id
+ */
+const updateTopic = async (req, res) => {
+  try {
+    const topicId = req.params.id;
+
+    if (!topicId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Topic id is required',
+      });
+    }
+
+    // Find topic
+    let topic = await Topic.collection.findOne({ id: topicId });
+    if (!topic) {
+      topic = await Topic.collection.findOne({ _id: topicId });
+    }
+
+    if (!topic) {
+      return res.status(404).json({
+        success: false,
+        error: 'Topic not found',
+      });
+    }
+
+    // Update topic
+    const updateData = { ...req.body };
+    const now = new Date();
+    updateData.updatedAt = now;
+
+    const updatedTopic = await Topic.collection.findOneAndUpdate(
+      { _id: topic._id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+
+    // Fetch topic with all connections
+    const topicWithConnections = await fetchTopicWithConnections(updatedTopic);
+
+    res.status(200).json({
+      success: true,
+      message: 'Topic updated successfully',
+      data: [topicWithConnections],
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message,
+    });
+  }
+};
+
+module.exports = {
+  createTopic,
+  getTopic,
+  getAllTopics,
+  updateTopic,
+};
+

@@ -1,34 +1,52 @@
 {
   "123": [
     {
-      "id": "highlight_1767763112231",
+      "id": "highlight_1767798465600",
       "type": "highlight",
-      "text": "mathematics, algebra is the study of mathematical symbols and the rules for manipulating",
+      "text": "mathematics, algebra is the study of mathematical",
       "color": "#90ee90",
       "chapterId": "1",
       "startOffset": 3,
-      "endOffset": 91,
-      "createdAt": "2026-01-07T05:18:32.231Z",
-      "note": "Hcfu",
-      "updatedAt": "2026-01-07T05:18:35.153Z"
+      "endOffset": 52,
+      "createdAt": "2026-01-07T15:07:45.600Z",
+      "note": "Hvdgb",
+      "updatedAt": "2026-01-07T15:07:49.722Z"
     },
     {
-      "id": "note_1767763214807",
-      "content": "Hello",
-      "x": 210.43850708007812,
-      "y": 23.5,
-      "createdAt": "2026-01-07T05:20:14.807Z"
+      "id": "note_1767798477005",
+      "content": "Hfvjh",
+      "x": 210.66665649414062,
+      "y": 165,
+      "createdAt": "2026-01-07T15:07:57.005Z"
     },
     {
-      "id": "highlight_1767767420990",
+      "id": "highlight_1767804533028",
       "type": "highlight",
-      "text": "equation \n𝑥\n2\n+\n5\n𝑥\n+\n6\n=\n0\nx \n2\n +5x+6=0 can be factored as \n(\n𝑥\n+\n2\n)\n(\n𝑥\n+\n3\n)\n=\n0\n(x+2)(x+3)=0. This is",
-      "color": "#add8e6",
+      "text": "When we solve \n𝑎\n𝑥\n2\n+\n𝑏\n𝑥\n+\n𝑐\n=\n0\nax \n2\n +bx+c=0, we use the quadratic formula",
+      "color": "#90ee90",
       "chapterId": "1",
-      "startOffset": 111,
-      "endOffset": 222,
-      "createdAt": "2026-01-07T06:30:20.990Z"
+      "startOffset": 395,
+      "endOffset": 479,
+      "createdAt": "2026-01-07T16:48:53.028Z",
+      "note": "Hhdc",
+      "updatedAt": "2026-01-07T16:48:59.402Z"
+    },
+    {
+      "id": "note_1767804557352",
+      "content": "Ufxbv",
+      "x": 88.5,
+      "y": 576,
+      "createdAt": "2026-01-07T16:49:17.352Z"
+    },
+    {
+      "id": "highlight_1767805604835",
+      "type": "highlight",
+      "text": "and the rules for manipulating these symbols.",
+      "color": "#ffff00",
+      "chapterId": "1",
+      "startOffset": 61,
+      "endOffset": 106,
+      "createdAt": "2026-01-07T17:06:44.835Z"
     }
-  ],
-  "456": []
+  ]
 }

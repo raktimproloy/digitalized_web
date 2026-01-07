@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Books, Chapters & Topics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+        }
+
+        .form-section {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .form-section.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="url"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .prerequisites-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .prerequisites-input input {
+            flex: 1;
+        }
+
+        .prerequisites-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .prerequisite-tag {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .prerequisite-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .prerequisite-tag button:hover {
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.show {
+            display: block;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Upload Books, Chapters & Topics</h1>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('book')">📖 Book</button>
+            <button class="tab-btn" onclick="showTab('chapter')">📑 Chapter</button>
+            <button class="tab-btn" onclick="showTab('topic')">📝 Topic</button>
+        </div>
+
+        <!-- Book Form -->
+        <div id="book-section" class="form-section active">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Create New Book</h2>
+            <form id="book-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="book-title">Title *</label>
+                        <input type="text" id="book-title" name="title" required placeholder="e.g., HSC পদার্থবিজ্ঞান">
+                    </div>
+                    <div class="form-group">
+                        <label for="book-author">Author *</label>
+                        <input type="text" id="book-author" name="author" required placeholder="e.g., বাংলাদেশ শিক্ষাবোর্ড">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="book-progress">Progress</label>
+                        <input type="number" id="book-progress" name="progress" value="0" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="book-totalChapters">Total Chapters</label>
+                        <input type="number" id="book-totalChapters" name="totalChapters" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="book-completedChapters">Completed Chapters</label>
+                        <input type="number" id="book-completedChapters" name="completedChapters" value="0" min="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="book-cover">Cover Image URL</label>
+                    <input type="url" id="book-cover" name="cover" placeholder="e.g., assets/images/icon.png">
+                </div>
+                <button type="submit" class="btn" id="book-submit-btn">Create Book</button>
+                <div id="book-message" class="message"></div>
+            </form>
+        </div>
+
+        <!-- Chapter Form -->
+        <div id="chapter-section" class="form-section">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Create New Chapter</h2>
+            <form id="chapter-form">
+                <div class="form-group">
+                    <label for="chapter-bookId">Select Book *</label>
+                    <select id="chapter-bookId" name="bookId" required>
+                        <option value="">Loading books...</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="chapter-title">Title *</label>
+                        <input type="text" id="chapter-title" name="title" required placeholder="e.g., ভৌত রাশি ও পরিমাপ">
+                    </div>
+                    <div class="form-group">
+                        <label for="chapter-status">Status</label>
+                        <select id="chapter-status" name="status">
+                            <option value="unlocked">Unlocked</option>
+                            <option value="locked">Locked</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="chapter-importance">Importance</label>
+                        <select id="chapter-importance" name="importance">
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="chapter-questionCount">Question Count</label>
+                        <input type="number" id="chapter-questionCount" name="questionCount" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="chapter-level">Level</label>
+                        <input type="number" id="chapter-level" name="level" value="1" min="1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="chapter-topicPosition">Topic Position</label>
+                        <select id="chapter-topicPosition" name="topicPosition">
+                            <option value="left">Left</option>
+                            <option value="right">Right</option>
+                            <option value="center">Center</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="chapter-prerequisites">Prerequisites (Chapter IDs)</label>
+                    <div class="prerequisites-input">
+                        <input type="text" id="chapter-prerequisite-input" placeholder="Enter chapter ID and press Enter">
+                    </div>
+                    <div class="prerequisites-list" id="chapter-prerequisites-list"></div>
+                    <input type="hidden" id="chapter-prerequisites" name="prerequisites" value="[]">
+                </div>
+                <button type="submit" class="btn" id="chapter-submit-btn">Create Chapter</button>
+                <div id="chapter-message" class="message"></div>
+            </form>
+        </div>
+
+        <!-- Topic Form -->
+        <div id="topic-section" class="form-section">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Create New Topic</h2>
+            <form id="topic-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="topic-bookId">Select Book *</label>
+                        <select id="topic-bookId" name="bookId" required>
+                            <option value="">Loading books...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="topic-chapterId">Select Chapter *</label>
+                        <select id="topic-chapterId" name="chapterId" required>
+                            <option value="">Select a book first</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="topic-name">Name *</label>
+                        <input type="text" id="topic-name" name="name" required placeholder="e.g., পদার্থবিজ্ঞান">
+                    </div>
+                    <div class="form-group">
+                        <label for="topic-status">Status</label>
+                        <select id="topic-status" name="status">
+                            <option value="unlocked">Unlocked</option>
+                            <option value="locked">Locked</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="topic-content">Content</label>
+                    <textarea id="topic-content" name="content" placeholder="Enter topic content here..."></textarea>
+                </div>
+                <button type="submit" class="btn" id="topic-submit-btn">Create Topic</button>
+                <div id="topic-message" class="message"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        // Tab switching
+        function showTab(tab) {
+            // Hide all sections
+            document.querySelectorAll('.form-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(`${tab}-section`).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        // Load books for dropdowns
+        async function loadBooks() {
+            try {
+                const response = await fetch(`${API_BASE}/books`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const bookSelects = document.querySelectorAll('#chapter-bookId, #topic-bookId');
+                    bookSelects.forEach(select => {
+                        select.innerHTML = '<option value="">Select a book</option>';
+                        result.data.forEach(book => {
+                            const option = document.createElement('option');
+                            option.value = book.id || book._id;
+                            option.textContent = `${book.title || 'Untitled'} (${book.id || book._id})`;
+                            select.appendChild(option);
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading books:', error);
+            }
+        }
+
+        // Load chapters for selected book
+        async function loadChapters(bookId) {
+            const chapterSelect = document.getElementById('topic-chapterId');
+            chapterSelect.innerHTML = '<option value="">Loading chapters...</option>';
+            
+            if (!bookId) {
+                chapterSelect.innerHTML = '<option value="">Select a book first</option>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/chapters`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const chapters = result.data.filter(ch => 
+                        (ch.bookId === bookId) || 
+                        (ch.book && (ch.book.id === bookId || ch.book._id === bookId))
+                    );
+                    
+                    chapterSelect.innerHTML = '<option value="">Select a chapter</option>';
+                    chapters.forEach(chapter => {
+                        const option = document.createElement('option');
+                        option.value = chapter.id || chapter._id;
+                        option.textContent = `${chapter.title || 'Untitled'} (${chapter.id || chapter._id})`;
+                        chapterSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading chapters:', error);
+                chapterSelect.innerHTML = '<option value="">Error loading chapters</option>';
+            }
+        }
+
+        // Prerequisites handling for chapters
+        let prerequisites = [];
+        const prerequisiteInput = document.getElementById('chapter-prerequisite-input');
+        const prerequisitesList = document.getElementById('chapter-prerequisites-list');
+        const prerequisitesHidden = document.getElementById('chapter-prerequisites');
+
+        prerequisiteInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const value = prerequisiteInput.value.trim();
+                if (value && !prerequisites.includes(value)) {
+                    prerequisites.push(value);
+                    updatePrerequisitesDisplay();
+                    prerequisiteInput.value = '';
+                }
+            }
+        });
+
+        function updatePrerequisitesDisplay() {
+            prerequisitesList.innerHTML = '';
+            prerequisitesHidden.value = JSON.stringify(prerequisites);
+            prerequisites.forEach((prereq, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'prerequisite-tag';
+                tag.innerHTML = `
+                    ${prereq}
+                    <button type="button" onclick="removePrerequisite(${index})">×</button>
+                `;
+                prerequisitesList.appendChild(tag);
+            });
+        }
+
+        function removePrerequisite(index) {
+            prerequisites.splice(index, 1);
+            updatePrerequisitesDisplay();
+        }
+
+        // Book form submission
+        document.getElementById('book-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('book-submit-btn');
+            const message = document.getElementById('book-message');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Creating...';
+            message.classList.remove('show', 'success', 'error');
+            
+            const formData = {
+                title: document.getElementById('book-title').value,
+                author: document.getElementById('book-author').value,
+                progress: parseInt(document.getElementById('book-progress').value) || 0,
+                totalChapters: parseInt(document.getElementById('book-totalChapters').value) || 0,
+                completedChapters: parseInt(document.getElementById('book-completedChapters').value) || 0,
+                cover: document.getElementById('book-cover').value || undefined
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/books`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    message.textContent = 'Book created successfully!';
+                    message.className = 'message success show';
+                    document.getElementById('book-form').reset();
+                    loadBooks(); // Reload books list
+                } else {
+                    throw new Error(result.error || 'Failed to create book');
+                }
+            } catch (error) {
+                message.textContent = `Error: ${error.message}`;
+                message.className = 'message error show';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Book';
+            }
+        });
+
+        // Chapter form submission
+        document.getElementById('chapter-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('chapter-submit-btn');
+            const message = document.getElementById('chapter-message');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Creating...';
+            message.classList.remove('show', 'success', 'error');
+            
+            const formData = {
+                bookId: document.getElementById('chapter-bookId').value,
+                title: document.getElementById('chapter-title').value,
+                status: document.getElementById('chapter-status').value,
+                importance: document.getElementById('chapter-importance').value,
+                questionCount: parseInt(document.getElementById('chapter-questionCount').value) || 0,
+                level: parseInt(document.getElementById('chapter-level').value) || 1,
+                topicPosition: document.getElementById('chapter-topicPosition').value,
+                prerequisites: prerequisites
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/chapters`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    message.textContent = 'Chapter created successfully!';
+                    message.className = 'message success show';
+                    document.getElementById('chapter-form').reset();
+                    prerequisites = [];
+                    updatePrerequisitesDisplay();
+                    loadChapters(document.getElementById('topic-bookId').value);
+                } else {
+                    throw new Error(result.error || 'Failed to create chapter');
+                }
+            } catch (error) {
+                message.textContent = `Error: ${error.message}`;
+                message.className = 'message error show';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Chapter';
+            }
+        });
+
+        // Topic form submission
+        document.getElementById('topic-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('topic-submit-btn');
+            const message = document.getElementById('topic-message');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Creating...';
+            message.classList.remove('show', 'success', 'error');
+            
+            const formData = {
+                bookId: document.getElementById('topic-bookId').value,
+                chapterId: document.getElementById('topic-chapterId').value,
+                name: document.getElementById('topic-name').value,
+                status: document.getElementById('topic-status').value,
+                content: document.getElementById('topic-content').value || undefined
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/topics`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    message.textContent = 'Topic created successfully!';
+                    message.className = 'message success show';
+                    document.getElementById('topic-form').reset();
+                } else {
+                    throw new Error(result.error || 'Failed to create topic');
+                }
+            } catch (error) {
+                message.textContent = `Error: ${error.message}`;
+                message.className = 'message error show';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Topic';
+            }
+        });
+
+        // Event listeners for dynamic loading
+        document.getElementById('topic-bookId').addEventListener('change', (e) => {
+            loadChapters(e.target.value);
+        });
+
+        // Initialize on page load
+        loadBooks();
+    </script>
+</body>
+</html>
+

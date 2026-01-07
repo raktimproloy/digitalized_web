@@ -1,9 +1,14 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const connectDB = require('./config/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Connect to MongoDB
+connectDB();
 
 // Set EJS as the view engine
 app.set('view engine', 'ejs');
@@ -17,6 +22,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Body parser middleware for handling form data
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// User API routes
+const userRoutes = require('./routes/userRoutes');
+app.use('/api/users', userRoutes);
+
+// Book API routes
+const bookRoutes = require('./routes/bookRoutes');
+app.use('/api/books', bookRoutes);
+
+// Chapter API routes
+const chapterRoutes = require('./routes/chapterRoutes');
+app.use('/api/chapters', chapterRoutes);
+
+// Topic API routes
+const topicRoutes = require('./routes/topicRoutes');
+app.use('/api/topics', topicRoutes);
 
 // Load ebooks data
 let ebooksData = {};
@@ -54,21 +75,6 @@ function saveUserNotes(notesData) {
     return false;
   }
 }
-
-// Routes
-app.get('/', (req, res) => {
-  res.render('index', {
-    title: 'Home Page',
-    message: 'Welcome to Express with EJS!'
-  });
-});
-
-app.get('/about', (req, res) => {
-  res.render('about', {
-    title: 'About Page',
-    message: 'This is the about page rendered with EJS.'
-  });
-});
 
 // Ebook route - accepts user ID as query parameter
 app.get('/ebook', (req, res) => {
