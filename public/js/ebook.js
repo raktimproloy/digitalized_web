@@ -1,33 +1,33 @@
 const Colors = {
   light: {
-    text: '#11181C',
-    background: '#F5F5F5',
-    tint: '#1C8A21',
+    text: '#0a0a0a',
+    background: '#F0F0F0',
+    tint: '#017a47',
     icon: '#687076',
     tabIconDefault: '#687076',
-    tabIconSelected: '#1C8A21',
-    primary: '#1C8A21',
-    secondary: '#f8a01f',
-    border: '#E5E5EA',
-    card: 'rgba(255, 255, 255, 0.7)',
-    cardBorder: 'rgba(28, 138, 33, 0.1)',
+    tabIconSelected: '#017a47',
+    primary: '#017a47',
+    secondary: '#016a3e',
+    border: '#e2e2e2',
+    card: '#ffffff',
+    cardBorder: 'rgba(1, 122, 71, 0.1)',
     error: '#FF3B30',
-    shadow: 'rgba(28, 138, 33, 0.1)',
+    shadow: 'rgba(1, 122, 71, 0.1)',
   },
   dark: {
-    text: '#C9D1CC',
-    background: '#0A0A0A',
-    tint: '#2ECC40',
+    text: '#ffffff',
+    background: '#121212',
+    tint: '#017a47',
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
-    tabIconSelected: '#2ECC40',
-    primary: '#2ECC40',
-    secondary: '#f8a01f',
-    border: '#38383A',
-    card: 'rgba(28, 28, 30, 0.85)',
-    cardBorder: 'rgba(46, 204, 64, 0.18)',
+    tabIconSelected: '#017a47',
+    primary: '#017a47',
+    secondary: '#018d52',
+    border: '#3b3b3b',
+    card: '#212121',
+    cardBorder: 'rgba(1, 122, 71, 0.18)',
     error: '#FF453A',
-    shadow: 'rgba(46, 204, 64, 0.12)',
+    shadow: 'rgba(1, 122, 71, 0.12)',
   },
 };
 
@@ -66,24 +66,70 @@ function getParams() {
 function applyTheme(themeName) {
   const theme = Colors[themeName] || Colors.light;
   const primaryRgb = hexToRgb(theme.primary);
+  const cardRgb = hexToRgb(theme.card);
+  
+  const glassEffect = `
+    background: rgba(${cardRgb}, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(${themeName === 'dark' ? '255,255,255' : '0,0,0'}, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+  `;
+
   const css = `
     body { background: ${theme.background} !important; color: ${theme.text} !important; }
     .ebook-container { background: transparent !important; border: none !important; box-shadow: none !important; }
     .ebook-title { color: ${theme.text} !important; border-bottom: 3px solid ${theme.tint} !important; }
     .chapter { background: transparent !important; border-left: none !important; }
     .chapter-title { color: ${theme.text} !important; }
-    .note-popup { border: 2px solid ${theme.primary} !important; }
+    
+    /* Glass Effect Elements */
+    .note-popup,
+    .highlight-palette,
+    .highlight-menu,
+    .note-modal,
+    .note-form-popup,
+    .sticky-popup-inner,
+    #global-sticky-popup {
+        ${glassEffect}
+    }
+
+    /* Match arrow color to glass background */
+    .sticky-popup-inner::before,
+    #global-sticky-popup::before {
+        border-bottom-color: rgba(${cardRgb}, 0.85) !important;
+    }
+
+    /* Ensure inner elements don't block glass effect */
+    .note-modal-header, 
+    .note-modal-actions,
+    .sticky-note-header {
+        background: transparent !important;
+        border-color: rgba(${themeName === 'dark' ? '255,255,255' : '0,0,0'}, 0.1) !important;
+    }
+
     .note-popup .note-title { color: ${theme.text} !important; border-bottom: 2px solid ${theme.tint} !important; }
     .sticky-note { background: ${theme.secondary} !important; border-color: #fff !important; }
-    .sticky-note.expanded { background: ${theme.card} !important; border-color: ${theme.secondary} !important; }
+    
+    .highlight-no-note, .user-highlight.highlight-no-note {
+        /* No specific overrides needed, falls back to default highlight styles */
+    }
+
+    .highlight-has-note, .user-highlight.highlight-has-note {
+        background: transparent !important;
+        /* Border color logic handled in updateHighlightStyles for user highlights */
+    }
+
     ${themeName === 'dark' ? `
-      .highlight { background: rgba(${primaryRgb}, 0.25) !important; color: ${theme.text} !important; }
-      .highlight:hover { background: rgba(${primaryRgb}, 0.30) !important; }
+      .highlight:not(.highlight-has-note) { background: rgba(${primaryRgb}, 0.25) !important; color: ${theme.text} !important; }
+      .highlight:not(.highlight-has-note):hover { background: rgba(${primaryRgb}, 0.30) !important; }
+      .highlight.highlight-has-note { border-bottom: 2px solid ${theme.primary} !important; }
       .highlight.active { background: rgba(${primaryRgb}, 0.40) !important; color: #fff !important; }
       .note-form-popup { border-top-color: ${theme.primary} !important; }
       .note-modal-header { background: rgba(${primaryRgb}, 0.06) !important; }
     ` : `
-      .highlight { background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%) !important; }
+      .highlight:not(.highlight-has-note) { background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%) !important; }
+      .highlight.highlight-has-note { border-bottom: 2px solid ${theme.primary} !important; }
     `}
   `;
   let style = document.getElementById('theme-overrides');
@@ -93,6 +139,9 @@ function applyTheme(themeName) {
     document.head.appendChild(style);
   }
   style.textContent = css;
+  
+  // Update highlight classes after theme application
+  setTimeout(updateHighlightStyles, 100);
 }
 
 function renderContent() {
@@ -241,7 +290,7 @@ function triggerShare() {
 function initializeNotesSystem() {
     const container = document.querySelector('.ebook-container');
     container.addEventListener('click', function(e) {
-        if (!e.target.closest('.sticky-note')) {
+        if (!e.target.closest('.sticky-note') && !e.target.closest('#global-sticky-popup')) {
             collapseAllNotes();
         }
         if (!addNoteMode) return;
@@ -360,6 +409,7 @@ function createHighlight(range, text, color, container) {
     userNotes.push(highlight);
     notesChanged = true;
     triggerAutosave();
+    updateHighlightStyles();
     setTimeout(() => {
         const el = document.querySelector(`.user-highlight[data-id="${highlight.id}"]`);
         if (el) {
@@ -390,7 +440,14 @@ function wrapRange(range, id, color) {
 
 function handleHighlightClick(e, id) {
     e.stopPropagation();
-    showHighlightMenu(e, id);
+    const highlight = userNotes.find(n => n.id === id);
+    if (highlight && highlight.note) {
+        // Directly open note if it exists
+        openNoteModal(id);
+    } else {
+        // Show menu if no note
+        showHighlightMenu(e, id);
+    }
 }
 
 function showHighlightMenu(e, id) {
@@ -465,6 +522,7 @@ function deleteHighlightNote() {
             highlight.updatedAt = new Date().toISOString();
             notesChanged = true;
             triggerAutosave();
+            updateHighlightStyles();
         }
         closeNoteModal();
     }
@@ -522,6 +580,7 @@ function renderUserHighlights() {
         if (!container) return;
         restoreHighlight(container, h.startOffset, h.endOffset, h.id, h.color);
     });
+    updateHighlightStyles();
 }
 
 function restoreHighlight(container, start, end, id, color) {
@@ -583,6 +642,7 @@ function saveNoteForm() {
             if (highlight) {
                 highlight.note = text;
                 highlight.updatedAt = new Date().toISOString();
+                updateHighlightStyles();
             }
             currentHighlightId = null;
         } else if (currentEditingNote) {
@@ -641,36 +701,86 @@ function renderSingleNote(note) {
         e.stopPropagation();
         if (noteEl.classList.contains('dragging')) return;
         if (e.target.closest('.note-btn')) return;
-        expandNote(note.id);
+        
+        // Toggle behavior: Close if already open, otherwise open
+        if (noteEl.classList.contains('expanded')) {
+            collapseAllNotes();
+        } else {
+            expandNote(note.id);
+        }
     });
     noteEl.innerHTML = `
         <div class="drag-handle-indicator">✥</div>
-        <div class="sticky-note-header">
-            <span class="sticky-note-title">Note <span class="sticky-badge">Sticky</span></span>
-            <div class="sticky-note-actions">
-                <button class="note-btn edit" onclick="editNote('${note.id}')">✏️</button>
-                <button class="note-btn delete" onclick="deleteNote('${note.id}')">🗑️</button>
+        <div class="sticky-popup-inner">
+            <div class="sticky-note-header">
+                <span class="sticky-note-title">Note <span class="sticky-badge">Sticky</span></span>
+                <div class="sticky-note-actions">
+                    <button class="note-btn edit" onclick="editNote('${note.id}')">✏️</button>
+                    <button class="note-btn delete" onclick="deleteNote('${note.id}')">🗑️</button>
+                </div>
             </div>
+            <div class="sticky-note-content">${escapeHtml(note.content)}</div>
         </div>
-        <div class="sticky-note-content">${escapeHtml(note.content)}</div>
     `;
     makeDraggable(noteEl, note.id);
     layer.appendChild(noteEl);
 }
 
 function expandNote(id) {
-    document.querySelectorAll('.sticky-note').forEach(el => {
-        if (el.id !== `note-${id}`) {
-            el.classList.remove('expanded');
-        }
-    });
+    collapseAllNotes(); // Close others
+    
     const noteEl = document.getElementById(`note-${id}`);
-    if (noteEl) {
-        noteEl.classList.add('expanded');
+    if (!noteEl) return;
+    
+    // Create or get global popup
+    let globalPopup = document.getElementById('global-sticky-popup');
+    if (!globalPopup) {
+        globalPopup = document.createElement('div');
+        globalPopup.id = 'global-sticky-popup';
+        globalPopup.className = 'sticky-popup-inner global-popup';
+        // Apply glass effect style class if needed, or rely on CSS
+        document.body.appendChild(globalPopup);
+        
+        // Add click listener to prevent closing when clicking inside
+        globalPopup.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
     }
+
+    // Copy content from the note
+    const innerContent = noteEl.querySelector('.sticky-popup-inner');
+    if (innerContent) {
+        globalPopup.innerHTML = innerContent.innerHTML;
+    }
+    
+    // Position the popup
+    const rect = noteEl.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    globalPopup.style.display = 'flex';
+    globalPopup.style.opacity = '1';
+    globalPopup.style.pointerEvents = 'auto';
+    globalPopup.style.position = 'absolute';
+    globalPopup.style.top = (rect.bottom + scrollTop + 12) + 'px'; // 12px gap
+    globalPopup.style.left = '50%';
+    globalPopup.style.transform = 'translateX(-50%)';
+    
+    // Calculate arrow offset to point to the icon
+    const iconCenter = rect.left + rect.width / 2;
+    const screenCenter = window.innerWidth / 2;
+    const arrowOffset = iconCenter - screenCenter;
+    globalPopup.style.setProperty('--arrow-offset', arrowOffset + 'px');
+
+    noteEl.classList.add('expanded');
 }
 
 function collapseAllNotes() {
+    const globalPopup = document.getElementById('global-sticky-popup');
+    if (globalPopup) {
+        globalPopup.style.display = 'none';
+        globalPopup.style.opacity = '0';
+        globalPopup.style.pointerEvents = 'none';
+    }
     document.querySelectorAll('.sticky-note').forEach(el => {
         el.classList.remove('expanded');
     });
@@ -827,8 +937,57 @@ async function saveNotesToServer() {
             alert('Failed to save notes: ' + (result.error || response.statusText));
         }
     } catch (error) {
-        console.error('Error autosaving:', error);
-    }
+    console.error('Error autosaving:', error);
+  }
+}
+
+function updateHighlightStyles() {
+    // 1. Process pre-existing highlights (.highlight)
+    document.querySelectorAll('.highlight').forEach(el => {
+        const term = el.textContent.trim().toLowerCase();
+        let hasNote = false;
+        if (ebookData && ebookData.notes) {
+            if (ebookData.notes[term]) {
+                hasNote = true;
+            } else {
+                 for (const key in ebookData.notes) {
+                    if (key.toLowerCase() === term) {
+                        hasNote = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (hasNote) {
+            el.classList.remove('highlight-no-note');
+            el.classList.add('highlight-has-note');
+        } else {
+            el.classList.add('highlight-no-note');
+            el.classList.remove('highlight-has-note');
+        }
+    });
+
+    // 2. Process user highlights (.user-highlight)
+    document.querySelectorAll('.user-highlight').forEach(el => {
+        const id = el.dataset.id;
+        const highlight = userNotes.find(n => n.id === id);
+        if (highlight) {
+            if (highlight.note) {
+                // Has note: Show as border-bottom
+                el.classList.remove('highlight-no-note');
+                el.classList.add('highlight-has-note');
+                el.style.backgroundColor = 'transparent';
+                el.style.borderBottom = `2px solid ${highlight.color}`;
+            } else {
+                // No note: Show as background highlight
+                el.classList.add('highlight-no-note');
+                el.classList.remove('highlight-has-note');
+                el.style.backgroundColor = highlight.color;
+                el.style.borderBottom = 'none';
+            }
+        }
+    });
 }
 
 function escapeHtml(text) {
