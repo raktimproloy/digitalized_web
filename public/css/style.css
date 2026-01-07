@@ -333,15 +333,16 @@
             position: relative; /* Changed from fixed */
             bottom: auto;
             right: auto;
-            width: 60px;
-            height: 60px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            opacity: 0.8;
+            background: linear-gradient(135deg, #017a47 0%, #017a47 100%);
             border: none;
             color: white;
             font-size: 24px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 15px #017a47;
             z-index: 1000;
             transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.2s;
             pointer-events: all;
@@ -352,13 +353,14 @@
 
         .add-note-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            box-shadow: 0 6px 20px #017a47;
         }
 
         .add-note-btn.active {
             transform: rotate(45deg);
-            background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
-            box-shadow: 0 4px 15px rgba(255, 95, 109, 0.4);
+            opacity: 1;
+            background: linear-gradient(135deg, #017a47 0%, #017a47 100%);
+            box-shadow: 0 4px 15px #017a47;
         }
 
         .fab-options {

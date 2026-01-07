@@ -1,16 +1,6 @@
 {
   "123": [
     {
-      "id": "highlight_1767762879783",
-      "type": "highlight",
-      "text": "This formula works for any coefficient in the equation. The discriminant \nΔ\n=\n𝑏\n2\n−\n4\n𝑎\n𝑐\nΔ=b \n2\n −4ac",
-      "color": "#ffb6c1",
-      "chapterId": "1",
-      "startOffset": 546,
-      "endOffset": 651,
-      "createdAt": "2026-01-07T05:14:39.783Z"
-    },
-    {
       "id": "highlight_1767763112231",
       "type": "highlight",
       "text": "mathematics, algebra is the study of mathematical symbols and the rules for manipulating",
@@ -28,6 +18,16 @@
       "x": 210.43850708007812,
       "y": 23.5,
       "createdAt": "2026-01-07T05:20:14.807Z"
+    },
+    {
+      "id": "highlight_1767767420990",
+      "type": "highlight",
+      "text": "equation \n𝑥\n2\n+\n5\n𝑥\n+\n6\n=\n0\nx \n2\n +5x+6=0 can be factored as \n(\n𝑥\n+\n2\n)\n(\n𝑥\n+\n3\n)\n=\n0\n(x+2)(x+3)=0. This is",
+      "color": "#add8e6",
+      "chapterId": "1",
+      "startOffset": 111,
+      "endOffset": 222,
+      "createdAt": "2026-01-07T06:30:20.990Z"
     }
   ],
   "456": []

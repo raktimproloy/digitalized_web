@@ -150,6 +150,45 @@ function applyTheme(themeName) {
             box-shadow: 0 0 8px rgba(${primaryRgb}, 0.3) !important;
         }
       `}
+
+    /* Highlight Menu & Palette Styling */
+    .highlight-menu, .highlight-palette {
+        background: ${themeName === 'dark' ? 'rgba(30, 30, 30, 0.85)' : 'rgba(255, 255, 255, 0.85)'} !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid ${themeName === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'} !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+        padding: 6px !important;
+        border-radius: 12px !important;
+        gap: 6px !important;
+        transition: opacity 0.2s ease, transform 0.2s ease !important;
+        opacity: 0.9 !important;
+    }
+
+    .highlight-menu:hover, .highlight-menu:active, .highlight-menu:focus-within,
+    .highlight-palette:hover, .highlight-palette:active, .highlight-palette:focus-within {
+        opacity: 1 !important;
+        transform: scale(1.02) !important;
+    }
+
+    .highlight-menu-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 14px !important;
+        padding: 4px !important;
+        color: ${theme.text} !important;
+    }
+    
+    .highlight-menu-btn:hover {
+        background: ${themeName === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'} !important;
+    }
+
+    /* Add Note Button Theme Integration */
+    .add-note-btn {
+        background-color: ${theme.primary} !important;
+        color: #fff !important;
+        border: none !important;
+    }
   `;
   let style = document.getElementById('theme-overrides');
   if (!style) {
