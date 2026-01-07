@@ -1,45 +1,33 @@
 {
   "123": [
     {
-      "id": "highlight_1767759384678",
+      "id": "highlight_1767762879783",
       "type": "highlight",
-      "text": "ra is the study of mathematical symbols and the rules for manipulating",
-      "color": "#90ee90",
-      "chapterId": "1",
-      "startOffset": 21,
-      "endOffset": 91,
-      "createdAt": "2026-01-07T04:16:24.678Z",
-      "note": "testes",
-      "updatedAt": "2026-01-07T04:16:31.620Z"
-    },
-    {
-      "id": "highlight_1767759537659",
-      "type": "highlight",
-      "text": "olves finding values of \n𝑥\nx that satisfy the equation: \n𝑥\n=\n−\n2\nx=",
+      "text": "This formula works for any coefficient in the equation. The discriminant \nΔ\n=\n𝑏\n2\n−\n4\n𝑎\n𝑐\nΔ=b \n2\n −4ac",
       "color": "#ffb6c1",
       "chapterId": "1",
-      "startOffset": 305,
-      "endOffset": 374,
-      "createdAt": "2026-01-07T04:18:57.660Z",
-      "note": "fdsafdsa",
-      "updatedAt": "2026-01-07T04:19:12.332Z"
+      "startOffset": 546,
+      "endOffset": 651,
+      "createdAt": "2026-01-07T05:14:39.783Z"
     },
     {
-      "id": "highlight_1767759542459",
+      "id": "highlight_1767763112231",
       "type": "highlight",
-      "text": "iminant \nΔ\n=\n𝑏\n2\n−\n4\n𝑎\n𝑐\nΔ=b \n2\n −4ac determines the nature of",
-      "color": "#add8e6",
+      "text": "mathematics, algebra is the study of mathematical symbols and the rules for manipulating",
+      "color": "#90ee90",
       "chapterId": "1",
-      "startOffset": 611,
-      "endOffset": 676,
-      "createdAt": "2026-01-07T04:19:02.459Z"
+      "startOffset": 3,
+      "endOffset": 91,
+      "createdAt": "2026-01-07T05:18:32.231Z",
+      "note": "Hcfu",
+      "updatedAt": "2026-01-07T05:18:35.153Z"
     },
     {
-      "id": "note_1767759923462",
-      "content": "ytghh",
-      "x": 213,
-      "y": 42,
-      "createdAt": "2026-01-07T04:25:23.462Z"
+      "id": "note_1767763214807",
+      "content": "Hello",
+      "x": 210.43850708007812,
+      "y": 23.5,
+      "createdAt": "2026-01-07T05:20:14.807Z"
     }
   ],
   "456": []

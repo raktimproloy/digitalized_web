@@ -117,20 +117,39 @@ function applyTheme(themeName) {
 
     .highlight-has-note, .user-highlight.highlight-has-note {
         background: transparent !important;
+        font-weight: bold !important;
         /* Border color logic handled in updateHighlightStyles for user highlights */
     }
 
+    /* Disable hover effects for note highlights */
+    .highlight.highlight-has-note:hover, .user-highlight.highlight-has-note:hover {
+        transform: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
     ${themeName === 'dark' ? `
-      .highlight:not(.highlight-has-note) { background: rgba(${primaryRgb}, 0.25) !important; color: ${theme.text} !important; }
-      .highlight:not(.highlight-has-note):hover { background: rgba(${primaryRgb}, 0.30) !important; }
-      .highlight.highlight-has-note { border-bottom: 2px solid ${theme.primary} !important; }
-      .highlight.active { background: rgba(${primaryRgb}, 0.40) !important; color: #fff !important; }
-      .note-form-popup { border-top-color: ${theme.primary} !important; }
-      .note-modal-header { background: rgba(${primaryRgb}, 0.06) !important; }
-    ` : `
-      .highlight:not(.highlight-has-note) { background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%) !important; }
-      .highlight.highlight-has-note { border-bottom: 2px solid ${theme.primary} !important; }
-    `}
+        .highlight:not(.highlight-has-note) { background: rgba(${primaryRgb}, 0.25) !important; color: ${theme.text} !important; }
+        .highlight:not(.highlight-has-note):hover { background: rgba(${primaryRgb}, 0.30) !important; }
+        .highlight.highlight-has-note { border-bottom: 2px dotted ${theme.primary} !important; }
+        .highlight.active { 
+            background: rgba(${primaryRgb}, 0.40) !important; 
+            color: inherit !important;
+            border-bottom: 2px solid ${theme.primary} !important;
+            box-shadow: 0 0 8px rgba(${primaryRgb}, 0.4) !important;
+        }
+        .note-form-popup { border-top-color: ${theme.primary} !important; }
+        .note-modal-header { background: rgba(${primaryRgb}, 0.06) !important; }
+      ` : `
+        .highlight:not(.highlight-has-note) { background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%) !important; }
+        .highlight.highlight-has-note { border-bottom: 2px dotted ${theme.primary} !important; }
+        .highlight.active {
+            background: rgba(${primaryRgb}, 0.30) !important;
+            color: inherit !important;
+            border-bottom: 2px solid ${theme.primary} !important;
+            box-shadow: 0 0 8px rgba(${primaryRgb}, 0.3) !important;
+        }
+      `}
   `;
   let style = document.getElementById('theme-overrides');
   if (!style) {
@@ -254,7 +273,27 @@ function closeHighlightPalette() {
 
 function setHighlightColor(color) {
     highlightColor = color;
-    highlightMode = true;
+    
+    // If we have a stored selection, apply highlight immediately
+    if (window.currentSelectionRange) {
+        const range = window.currentSelectionRange;
+        const text = window.currentSelectionText;
+        const chapterContent = range.commonAncestorContainer.nodeType === 1
+            ? range.commonAncestorContainer.closest('.chapter-content')
+            : range.commonAncestorContainer.parentElement.closest('.chapter-content');
+            
+        if (chapterContent) {
+            createHighlight(range, text, highlightColor, chapterContent);
+            
+            // Clear selection and hide palette
+            window.getSelection().removeAllRanges();
+            window.currentSelectionRange = null;
+            window.currentSelectionText = null;
+            document.getElementById('highlightPalette').classList.remove('active');
+        }
+    }
+    
+    // Update active state of color buttons
     document.querySelectorAll('.color-btn').forEach(btn => {
         btn.classList.remove('active');
         const temp = document.createElement('div');
@@ -267,7 +306,6 @@ function setHighlightColor(color) {
             btn.classList.add('active');
         }
     });
-    updateHighlightCursor();
 }
 
 function updateHighlightCursor() {
@@ -361,31 +399,87 @@ function makePaletteDraggable() {
 }
 
 function initializeHighlightSystem() {
-    document.addEventListener('selectionchange', () => {
-        if (!highlightMode) return;
-        if (window.highlightTimeout) clearTimeout(window.highlightTimeout);
-        window.highlightTimeout = setTimeout(handleHighlightSelection, 500);
-    });
-    document.addEventListener('touchend', () => {
-        if (highlightMode) {
-            setTimeout(handleHighlightSelection, 100);
+    // Show palette on text selection using selectionchange for better mobile support
+    document.addEventListener('selectionchange', debounce(handleSelectionChange, 300));
+    
+    // Also keep mouseup/touchend for immediate response on clicks outside
+    document.addEventListener('mouseup', (e) => handleSelectionEnd(e));
+    document.addEventListener('touchend', (e) => setTimeout(() => handleSelectionEnd(e), 100));
+}
+
+let selectionTimeout;
+let lastInteractionTarget = null;
+
+function initializeHighlightSystem() {
+    // Track interaction target to prevent unwanted closing
+    document.addEventListener('mousedown', (e) => lastInteractionTarget = e.target);
+    document.addEventListener('touchstart', (e) => lastInteractionTarget = e.target);
+
+    // Show palette on text selection using selectionchange for better mobile support
+    document.addEventListener('selectionchange', debounce(handleSelectionChange, 300));
+    
+    // Also keep mouseup/touchend for immediate response on clicks outside
+    document.addEventListener('mouseup', (e) => handleSelectionEnd(e));
+    document.addEventListener('touchend', (e) => setTimeout(() => handleSelectionEnd(e), 100));
+}
+
+function debounce(func, wait) {
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(selectionTimeout);
+            func(...args);
+        };
+        clearTimeout(selectionTimeout);
+        selectionTimeout = setTimeout(later, wait);
+    };
+}
+
+function handleSelectionChange() {
+    handleSelectionEnd(null);
+}
+
+function handleSelectionEnd(e) {
+    const selection = window.getSelection();
+    const target = e ? e.target : lastInteractionTarget;
+    
+    // Check if we interacted with the palette or FAB controls
+    if (target && target.closest) {
+        if (target.closest('#highlightPalette') || 
+            target.closest('.fab-container') || 
+            target.closest('.color-btn')) {
+            return;
         }
-    });
+    }
+
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        // Hide palette
+        document.getElementById('highlightPalette').classList.remove('active');
+        window.currentSelectionRange = null;
+        window.currentSelectionText = null;
+        return;
+    }
+
+    const text = selection.toString().trim();
+    if (text.length > 0) {
+        // Show palette (use CSS positioning)
+        const range = selection.getRangeAt(0);
+        const palette = document.getElementById('highlightPalette');
+        
+        // Reset any inline styles
+        palette.style.left = '';
+        palette.style.top = '';
+        palette.style.display = ''; 
+        
+        palette.classList.add('active');
+        
+        // Store the range
+        window.currentSelectionRange = range;
+        window.currentSelectionText = text;
+    }
 }
 
 function handleHighlightSelection() {
-    if (!highlightMode) return;
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
-    const text = selection.toString().trim();
-    if (text.length < 1) return;
-    const range = selection.getRangeAt(0);
-    const chapterContent = range.commonAncestorContainer.nodeType === 1
-        ? range.commonAncestorContainer.closest('.chapter-content')
-        : range.commonAncestorContainer.parentElement.closest('.chapter-content');
-    if (!chapterContent) return;
-    createHighlight(range, text, highlightColor, chapterContent);
-    selection.removeAllRanges();
+    // Deprecated in favor of on-demand highlighting via palette
 }
 
 function createHighlight(range, text, color, container) {
@@ -465,6 +559,11 @@ function showHighlightMenu(e, id) {
     }
     menu.innerHTML = html;
     menu.classList.remove('hidden');
+    
+    // Get dimensions after showing
+    const menuRect = menu.getBoundingClientRect();
+    const menuWidth = menuRect.width;
+    
     let x, y;
     if (e.clientX && e.clientY) {
         x = e.clientX;
@@ -480,9 +579,36 @@ function showHighlightMenu(e, id) {
             y = window.innerHeight / 2;
         }
     }
+    
+    // Calculate position (centered on x)
+    let leftPos = x - (menuWidth / 2);
+    let topPos = y - 50;
+    
+    // Screen boundaries
+    const padding = 10;
+    const windowWidth = window.innerWidth;
+    
+    // Clamp horizontal position
+    if (leftPos < padding) {
+        leftPos = padding;
+    } else if (leftPos + menuWidth > windowWidth - padding) {
+        leftPos = windowWidth - menuWidth - padding;
+    }
+    
+    // Adjust vertical if too close to top
+    if (topPos < padding) {
+        const el = document.querySelector(`.user-highlight[data-id="${id}"]`);
+        if (el) {
+             const rect = el.getBoundingClientRect();
+             topPos = rect.bottom + 10;
+        } else {
+             topPos = y + 20;
+        }
+    }
+    
     menu.style.position = 'fixed';
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y - 50}px`;
+    menu.style.left = `${leftPos}px`;
+    menu.style.top = `${topPos}px`;
 }
 
 function openNoteModal(id) {
