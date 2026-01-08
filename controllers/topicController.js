@@ -2,6 +2,7 @@ const Book = require('../models/Book');
 const Chapter = require('../models/Chapter');
 const Topic = require('../models/Topic');
 const UserNote = require('../models/UserNote');
+const UserTopicUnlock = require('../models/UserTopicUnlock');
 const mongoose = require('mongoose');
 
 /**
@@ -323,10 +324,74 @@ const updateTopic = async (req, res) => {
   }
 };
 
+/**
+ * Unlock a topic for a user
+ * POST /api/topics/:id/unlock
+ * Body: { userId: "xxx" }
+ */
+const unlockTopicForUser = async (req, res) => {
+  try {
+    const topicId = req.params.id;
+    const userId = req.body.userId || req.query.userId;
+
+    if (!topicId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Topic id is required',
+      });
+    }
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User id is required',
+      });
+    }
+
+    // Check if topic exists
+    let topic = await Topic.collection.findOne({ id: topicId });
+    if (!topic) {
+      if (mongoose.Types.ObjectId.isValid(topicId)) {
+        topic = await Topic.collection.findOne({ _id: new mongoose.Types.ObjectId(topicId) });
+      }
+    }
+
+    if (!topic) {
+      return res.status(404).json({
+        success: false,
+        error: 'Topic not found',
+      });
+    }
+
+    // Use the topicId from params (could be id or _id)
+    const finalTopicId = topic.id || topic._id.toString();
+
+    // Create or update unlock record
+    const unlock = await UserTopicUnlock.findOneAndUpdate(
+      { userId, topicId: finalTopicId },
+      { userId, topicId: finalTopicId, unlockedAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Topic unlocked successfully',
+      data: unlock,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createTopic,
   getTopic,
   getAllTopics,
   updateTopic,
+  unlockTopicForUser,
 };
 

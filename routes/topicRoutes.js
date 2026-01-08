@@ -5,6 +5,7 @@ const {
   getTopic,
   getAllTopics,
   updateTopic,
+  unlockTopicForUser,
 } = require('../controllers/topicController');
 
 /**
@@ -41,6 +42,13 @@ router.put('/:id', updateTopic);
  * @access  Public
  */
 router.patch('/:id', updateTopic);
+
+/**
+ * @route   POST /api/topics/:id/unlock
+ * @desc    Unlock a topic for a user
+ * @access  Public
+ */
+router.post('/:id/unlock', unlockTopicForUser);
 
 module.exports = router;
 
