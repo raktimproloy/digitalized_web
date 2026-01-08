@@ -88,15 +88,6 @@ const createBook = async (req, res) => {
   try {
     console.log('Request body:', req.body);
     
-    // Check if database is connected
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({
-        success: false,
-        error: 'Database not connected',
-        message: 'Please wait for the database connection to be established',
-      });
-    }
-    
     // Accept single book object directly
     const bookData = { ...req.body };
     

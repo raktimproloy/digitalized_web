@@ -10,8 +10,7 @@ const UserNote = require('./models/UserNote');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB - will be awaited before server starts
 
 // Set EJS as the view engine
 app.set('view engine', 'ejs');
@@ -250,10 +249,23 @@ app.post('/api/user-notes', async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`Ebook viewer: http://localhost:${PORT}/ebook?user=123`);
-  console.log(`API endpoint: http://localhost:${PORT}/api/ebook?user=123`);
-});
+// Start the server only after database connection is established
+const startServer = async () => {
+  try {
+    // Wait for database connection
+    await connectDB();
+    
+    // Start the server
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`Ebook viewer: http://localhost:${PORT}/ebook?user=123`);
+      console.log(`API endpoint: http://localhost:${PORT}/api/ebook?user=123`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
