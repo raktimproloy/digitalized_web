@@ -3,7 +3,11 @@ const Chapter = require('../models/Chapter');
 const Topic = require('../models/Topic');
 const UserNote = require('../models/UserNote');
 const UserTopicUnlock = require('../models/UserTopicUnlock');
+const UserTopicPoint = require('../models/UserTopicPoint');
 const mongoose = require('mongoose');
+
+// Import fetchBookWithConnections from bookController
+const { fetchBookWithConnections } = require('./bookController');
 
 /**
  * Helper function to fetch topic with all connected data (chapter and book)
@@ -237,7 +241,7 @@ const getTopic = async (req, res) => {
  */
 const getAllTopics = async (req, res) => {
   try {
-    const topics = await Topic.collection.find({}).sort({ createdAt: -1 }).toArray();
+    const topics = await Topic.collection.find({}).sort({ order: 1, createdAt: 1 }).toArray();
 
     // For each topic, fetch all connected data
     for (const topic of topics) {
@@ -316,16 +320,19 @@ const updateTopic = async (req, res) => {
 };
 
 /**
- * Unlock a topic for a user
+ * Unlock next topic for a user and store points for current topic
  * POST /api/topics/:id/unlock
- * Body: { userId: "xxx" }
+ * Body: { userId: "xxx", point: 10 }
+ * - Stores point with current topic and user
+ * - Unlocks the NEXT topic in the same chapter
  */
 const unlockTopicForUser = async (req, res) => {
   try {
-    const topicId = req.params.id;
+    const currentTopicId = req.params.id;
     const userId = req.body.userId || req.query.userId;
+    const point = req.body.point || req.query.point || 0;
 
-    if (!topicId) {
+    if (!currentTopicId) {
       return res.status(400).json({
         success: false,
         error: 'Topic id is required',
@@ -339,37 +346,181 @@ const unlockTopicForUser = async (req, res) => {
       });
     }
 
-    // Check if topic exists
-    let topic = await Topic.collection.findOne({ id: topicId });
-    if (!topic) {
-      if (mongoose.Types.ObjectId.isValid(topicId)) {
-        topic = await Topic.collection.findOne({ _id: new mongoose.Types.ObjectId(topicId) });
+    // Find current topic
+    let currentTopic = await Topic.collection.findOne({ id: currentTopicId });
+    if (!currentTopic) {
+      if (mongoose.Types.ObjectId.isValid(currentTopicId)) {
+        currentTopic = await Topic.collection.findOne({ _id: new mongoose.Types.ObjectId(currentTopicId) });
       }
     }
 
-    if (!topic) {
+    if (!currentTopic) {
       return res.status(404).json({
         success: false,
         error: 'Topic not found',
       });
     }
 
-    // Use the topicId from params (could be id or _id)
-    const finalTopicId = topic.id || topic._id.toString();
+    const finalCurrentTopicId = currentTopic.id || currentTopic._id.toString();
+    const chapterId = currentTopic.chapterId;
+    const bookId = currentTopic.bookId;
 
-    // Create or update unlock record
-    const unlock = await UserTopicUnlock.findOneAndUpdate(
-      { userId, topicId: finalTopicId },
-      { userId, topicId: finalTopicId, unlockedAt: new Date() },
-      { upsert: true, new: true }
+    // Store point for current topic
+    let pointRecord = null;
+    if (point > 0) {
+      pointRecord = await UserTopicPoint.findOneAndUpdate(
+        { userId, topicId: finalCurrentTopicId },
+        { 
+          userId, 
+          topicId: finalCurrentTopicId,
+          chapterId: chapterId,
+          point: point,
+          earnedAt: new Date() 
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    // Find next topic in the same chapter
+    // Get all topics in the chapter sorted by order
+    const allTopics = await Topic.collection.find({ chapterId })
+      .sort({ order: 1, createdAt: 1 })
+      .toArray();
+
+    // Find current topic index
+    const currentIndex = allTopics.findIndex(t => 
+      (t.id && t.id.toString() === finalCurrentTopicId.toString()) ||
+      (t._id && t._id.toString() === finalCurrentTopicId.toString())
+    );
+
+    let nextTopic = null;
+    let nextUnlock = null;
+
+    if (currentIndex >= 0 && currentIndex < allTopics.length - 1) {
+      // Get next topic
+      nextTopic = allTopics[currentIndex + 1];
+      const nextTopicId = nextTopic.id || nextTopic._id.toString();
+
+      // Unlock the next topic
+      nextUnlock = await UserTopicUnlock.findOneAndUpdate(
+        { userId, topicId: nextTopicId },
+        { userId, topicId: nextTopicId, unlockedAt: new Date() },
+        { upsert: true, new: true }
+      );
+    }
+
+    // Get the book associated with this topic
+    let book = null;
+    if (bookId) {
+      book = await Book.collection.findOne({ id: bookId });
+      if (!book) {
+        if (mongoose.Types.ObjectId.isValid(bookId)) {
+          book = await Book.collection.findOne({ _id: new mongoose.Types.ObjectId(bookId) });
+        }
+      }
+    }
+
+    // If book not found by bookId, try to find it through chapter
+    if (!book && chapterId) {
+      let chapter = await Chapter.collection.findOne({ id: chapterId });
+      if (!chapter && mongoose.Types.ObjectId.isValid(chapterId)) {
+        chapter = await Chapter.collection.findOne({ _id: new mongoose.Types.ObjectId(chapterId) });
+      }
+      
+      if (chapter && chapter.bookId) {
+        book = await Book.collection.findOne({ id: chapter.bookId });
+        if (!book && mongoose.Types.ObjectId.isValid(chapter.bookId)) {
+          book = await Book.collection.findOne({ _id: new mongoose.Types.ObjectId(chapter.bookId) });
+        }
+      }
+    }
+
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        error: 'Book not found for this topic',
+      });
+    }
+
+    // Fetch book with all connections (same as /api/books?userId=xxx)
+    const bookWithConnections = await fetchBookWithConnections(book, userId);
+
+    // Return same format as /api/books?userId=xxx
+    res.status(200).json({
+      success: true,
+      message: 'Point stored and next topic unlocked successfully',
+      data: [bookWithConnections],
+    });
+  } catch (error) {
+    console.error('Error in unlockTopicForUser:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Get point count for a user by chapter
+ * GET /api/topics/points?userId=xxx&chapterId=xxx
+ * Returns total points for the user in the specified chapter
+ */
+const getUserChapterPoints = async (req, res) => {
+  try {
+    const userId = req.query.userId || req.query.user || req.query.id;
+    const chapterId = req.query.chapterId || req.query.chapter;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User id is required',
+      });
+    }
+
+    if (!chapterId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chapter id is required',
+      });
+    }
+
+    // Get all points for this user in this chapter
+    const points = await UserTopicPoint.find({ userId, chapterId }).lean();
+
+    // Calculate total points
+    const totalPoints = points.reduce((sum, p) => sum + (p.point || 0), 0);
+
+    // Get topic details for each point
+    const pointsWithTopics = await Promise.all(
+      points.map(async (pointRecord) => {
+        let topic = await Topic.collection.findOne({ id: pointRecord.topicId });
+        if (!topic) {
+          if (mongoose.Types.ObjectId.isValid(pointRecord.topicId)) {
+            topic = await Topic.collection.findOne({ _id: new mongoose.Types.ObjectId(pointRecord.topicId) });
+          }
+        }
+        return {
+          topicId: pointRecord.topicId,
+          point: pointRecord.point,
+          earnedAt: pointRecord.earnedAt,
+          topicName: topic ? (topic.name || topic.title) : null
+        };
+      })
     );
 
     res.status(200).json({
       success: true,
-      message: 'Topic unlocked successfully',
-      data: unlock,
+      data: {
+        userId,
+        chapterId,
+        totalPoints,
+        points: pointsWithTopics,
+        count: points.length
+      },
     });
   } catch (error) {
+    console.error('Error in getUserChapterPoints:', error);
     res.status(500).json({
       success: false,
       error: 'Server error',
@@ -384,5 +535,6 @@ module.exports = {
   getAllTopics,
   updateTopic,
   unlockTopicForUser,
+  getUserChapterPoints,
 };
 

@@ -170,7 +170,7 @@ const getChapter = async (req, res) => {
  */
 const getAllChapters = async (req, res) => {
   try {
-    const chapters = await Chapter.collection.find({}).sort({ createdAt: -1 }).toArray();
+    const chapters = await Chapter.collection.find({}).sort({ order: 1, createdAt: 1 }).toArray();
 
     // For each chapter, fetch all connected data
     for (const chapter of chapters) {

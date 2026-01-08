@@ -6,6 +6,7 @@ const {
   getAllTopics,
   updateTopic,
   unlockTopicForUser,
+  getUserChapterPoints,
 } = require('../controllers/topicController');
 
 /**
@@ -45,10 +46,17 @@ router.patch('/:id', updateTopic);
 
 /**
  * @route   POST /api/topics/:id/unlock
- * @desc    Unlock a topic for a user
+ * @desc    Unlock next topic for a user and store points for current topic
  * @access  Public
  */
 router.post('/:id/unlock', unlockTopicForUser);
+
+/**
+ * @route   GET /api/topics/points
+ * @desc    Get point count for a user by chapter
+ * @access  Public
+ */
+router.get('/points', getUserChapterPoints);
 
 module.exports = router;
 

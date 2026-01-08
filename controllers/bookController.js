@@ -2,22 +2,28 @@ const Book = require('../models/Book');
 const Chapter = require('../models/Chapter');
 const Topic = require('../models/Topic');
 const UserTopicUnlock = require('../models/UserTopicUnlock');
+const UserTopicPoint = require('../models/UserTopicPoint');
 const mongoose = require('mongoose');
 
 /**
  * Helper function to fetch book with all connected data (chapters and topics)
  * Note: Topic content is excluded to reduce response size
- * If userId is provided, only returns unlocked topics for that user
- * Removes status fields from chapters and topics (no locked/unlocked system in DB)
+ * Returns ALL topics with proper locked/unlocked status
+ * - First topic of each chapter is automatically unlocked
+ * - Other topics are unlocked only if user has unlocked them
  */
 const fetchBookWithConnections = async (book, userId = null) => {
   const bookId = book.id || book._id.toString();
   
-  // Fetch all chapters for this book
-  const chapters = await Chapter.collection.find({ bookId }).toArray();
+  // Fetch all chapters for this book, sorted by order then createdAt
+  const chapters = await Chapter.collection.find({ bookId })
+    .sort({ order: 1, createdAt: 1 })
+    .toArray();
   
   // Get unlocked topic IDs for this user if userId is provided
   let unlockedTopicIds = new Set();
+  let topicPointsMap = new Map(); // Map to store points for each topic
+  
   if (userId) {
     const unlocks = await UserTopicUnlock.find({ userId }).lean();
     unlocks.forEach(unlock => {
@@ -25,6 +31,15 @@ const fetchBookWithConnections = async (book, userId = null) => {
       const topicId = unlock.topicId;
       if (topicId) {
         unlockedTopicIds.add(topicId.toString());
+      }
+    });
+
+    // Get all points for this user's topics
+    const points = await UserTopicPoint.find({ userId }).lean();
+    points.forEach(pointRecord => {
+      const topicId = pointRecord.topicId;
+      if (topicId) {
+        topicPointsMap.set(topicId.toString(), pointRecord.point || 0);
       }
     });
   }
@@ -38,25 +53,16 @@ const fetchBookWithConnections = async (book, userId = null) => {
       delete chapter.status;
     }
     
-    // Fetch all topics for this chapter
+    // Fetch all topics for this chapter, sorted by order then createdAt
     const allTopics = await Topic.collection.find(
       { chapterId },
       { projection: { content: 0 } } // Exclude content field
-    ).toArray();
+    )
+    .sort({ order: 1, createdAt: 1 })
+    .toArray();
     
-    // Filter topics based on user unlock status
-    let topics = allTopics;
-    if (userId) {
-      // Only return unlocked topics for this user
-      topics = allTopics.filter(topic => {
-        const topicId = topic.id || (topic._id ? topic._id.toString() : null);
-        // Check if this topic is unlocked for the user
-        return topicId && unlockedTopicIds.has(topicId.toString());
-      });
-    }
-    
-    // Remove status field from each topic and add unlocked status
-    topics = topics.map(topic => {
+    // Process all topics and set their locked/unlocked status and points
+    const topics = allTopics.map((topic, index) => {
       const topicId = topic.id || (topic._id ? topic._id.toString() : null);
       const topicCopy = { ...topic };
       
@@ -65,8 +71,30 @@ const fetchBookWithConnections = async (book, userId = null) => {
         delete topicCopy.status;
       }
       
-      // Add status based on user unlock (always unlocked if userId not provided)
-      topicCopy.status = userId ? 'unlocked' : 'unlocked';
+      // Determine topic status
+      if (!userId) {
+        // If no userId provided, all topics are unlocked
+        topicCopy.status = 'unlocked';
+        topicCopy.point = 0;
+      } else {
+        // First topic (index 0) of each chapter is automatically unlocked
+        if (index === 0) {
+          topicCopy.status = 'unlocked';
+        } else {
+          // Other topics are unlocked only if user has unlocked them
+          // Check both id and _id formats to match what's stored in UserTopicUnlock
+          const isUnlocked = topicId && (
+            unlockedTopicIds.has(topicId.toString()) ||
+            (topic._id && unlockedTopicIds.has(topic._id.toString()))
+          );
+          topicCopy.status = isUnlocked ? 'unlocked' : 'locked';
+        }
+        
+        // Add point data for this topic
+        const point = topicPointsMap.get(topicId.toString()) || 
+                     (topic._id ? topicPointsMap.get(topic._id.toString()) : null) || 0;
+        topicCopy.point = point;
+      }
       
       return topicCopy;
     });
@@ -301,4 +329,5 @@ module.exports = {
   getBook,
   getAllBooks,
   updateBook,
+  fetchBookWithConnections,
 };
