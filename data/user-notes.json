@@ -48,5 +48,34 @@
       "endOffset": 106,
       "createdAt": "2026-01-07T17:06:44.835Z"
     }
+  ],
+  "695f0d548207ae90e0469a10": [
+    {
+      "id": "highlight_1767837788411",
+      "type": "highlight",
+      "text": "তিশীল। এটি একটি দৃষ্টিবিভ্রম বা আপেক্ষিক গতির উদাহরণ।",
+      "color": "#add8e6",
+      "chapterId": "topic",
+      "startOffset": 3969,
+      "endOffset": 4022,
+      "createdAt": "2026-01-08T02:03:08.411Z"
+    },
+    {
+      "id": "highlight_1767840515570",
+      "type": "highlight",
+      "text": "সবকিছুই হয় দাঁড়িয়ে আছে, নাহয় চলছে। কিন্তু পদার্থবিজ্ঞানের চোখে এই 'দাঁড়িয়ে থাকা' আর 'চলা'র পেছনে",
+      "color": "#ffb6c1",
+      "chapterId": "topic",
+      "startOffset": 48,
+      "endOffset": 150,
+      "createdAt": "2026-01-08T02:48:35.571Z"
+    },
+    {
+      "id": "note_1767840525491",
+      "content": "Ygghj",
+      "x": 219,
+      "y": 120,
+      "createdAt": "2026-01-08T02:48:45.491Z"
+    }
   ]
 }

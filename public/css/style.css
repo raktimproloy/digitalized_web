@@ -33,13 +33,11 @@
         }
         
         .chapter-title {
-            font-size: 1.8rem;
             margin-bottom: 20px;
             color: #2c3e50;
         }
         
         .chapter-content {
-            font-size: 1.1rem;
             line-height: 1.8;
             white-space: pre-wrap;
         }

@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 
 /**
  * Helper function to fetch book with all connected data (chapters and topics)
+ * Note: Topic content is excluded to reduce response size
  */
 const fetchBookWithConnections = async (book) => {
   const bookId = book.id || book._id.toString();
@@ -12,10 +13,13 @@ const fetchBookWithConnections = async (book) => {
   // Fetch all chapters for this book
   const chapters = await Chapter.collection.find({ bookId }).toArray();
   
-  // For each chapter, fetch its topics
+  // For each chapter, fetch its topics (excluding content field)
   for (const chapter of chapters) {
     const chapterId = chapter.id || chapter._id.toString();
-    const topics = await Topic.collection.find({ chapterId }).toArray();
+    const topics = await Topic.collection.find(
+      { chapterId },
+      { projection: { content: 0 } } // Exclude content field
+    ).toArray();
     chapter.topics = topics;
   }
   

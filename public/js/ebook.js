@@ -43,7 +43,18 @@ function hexToRgb(hex) {
 const ebookData = window.ebookData;
 const userId = window.userId;
 const initialUserNotes = window.initialUserNotes || [];
-let userNotes = [...initialUserNotes];
+// Normalize notes: ensure id field exists (map _id to id if needed)
+// Preserve original id if it exists, otherwise use _id
+let userNotes = initialUserNotes.map(note => {
+    const normalized = { ...note };
+    // If note has _id but no id field, use _id as id
+    // Otherwise, preserve the existing id field
+    if (normalized._id && !normalized.id) {
+        normalized.id = normalized._id.toString();
+    }
+    // Keep _id for reference but use id as primary identifier
+    return normalized;
+});
 let notesChanged = false;
 let noteIdCounter = Date.now();
 let currentEditingNote = null;
@@ -203,32 +214,106 @@ function applyTheme(themeName) {
 }
 
 function renderContent() {
-    ebookData.chapters.forEach(chapter => {
-        const contentDiv = document.getElementById(`content-${chapter.id}`);
-        if (!contentDiv) return;
-        let processedContent = chapter.content;
-        processedContent = processedContent.replace(
-            /\*([^*]+)\*@([^@]+)@/g,
-            '<span class="highlight" data-term="$2" data-display="$1" onclick="showNote(\'$2\', this)">$1</span>'
-        );
-        processedContent = processedContent.replace(
-            /\*([^*]+)\*/g,
-            '<span class="highlight" data-term="$1" onclick="showNote(\'$1\', this)">$1</span>'
-        );
-        processedContent = processedContent.replace(
-            /@([^@]+)@/g,
-            '<span class="highlight" data-term="$1" onclick="showNote(\'$1\', this)">$1</span>'
-        );
-        contentDiv.innerHTML = processedContent;
-        renderMathInElement(contentDiv, {
-            delimiters: [
-                {left: '$$', right: '$$', display: true},
-                {left: '$', right: '$', display: false},
-                {left: '\\[', right: '\\]', display: true},
-                {left: '\\(', right: '\\)', display: false}
-            ],
-            throwOnError: false
+    // Check if this is a topic view
+    if (window.isTopic) {
+        // Render topic content
+        const topicContentDiv = document.getElementById('content-topic');
+        if (topicContentDiv) {
+            // Content is already rendered from EJS as HTML, just process highlights and KaTeX
+            processExistingContent(topicContentDiv);
+        }
+        return;
+    }
+    
+    // Render main content if it exists
+    const mainContentDiv = document.getElementById('content-main');
+    if (mainContentDiv) {
+        // Content is already rendered from EJS as HTML, just process highlights and KaTeX
+        processExistingContent(mainContentDiv);
+    }
+    
+    // Render chapter content
+    if (ebookData.chapters && ebookData.chapters.length > 0) {
+        ebookData.chapters.forEach(chapter => {
+            const contentDiv = document.getElementById(`content-${chapter.id}`);
+            if (!contentDiv) return;
+            
+            // If content is already rendered from EJS (has HTML), process highlights and KaTeX
+            // Otherwise, if chapter has content, process and render it
+            if (contentDiv.innerHTML.trim() !== '') {
+                // Content already exists (from EJS), process highlights and KaTeX
+                processExistingContent(contentDiv);
+            } else if (chapter.content) {
+                // No content yet, render from chapter.content
+                processAndRenderContent(contentDiv, chapter.content);
+            }
         });
+    }
+}
+
+function processAndRenderContent(contentDiv, content) {
+    let processedContent = content;
+    
+    // Process highlight patterns: *text*@term@, *text*, @term@
+    // onclick="showNote(...)" disabled - commented out for now
+    // processedContent = processedContent.replace(
+    //     /\*([^*]+)\*@([^@]+)@/g,
+    //     '<span class="highlight" data-term="$2" data-display="$1" onclick="showNote(\'$2\', this)">$1</span>'
+    // );
+    // processedContent = processedContent.replace(
+    //     /\*([^*]+)\*/g,
+    //     '<span class="highlight" data-term="$1" onclick="showNote(\'$1\', this)">$1</span>'
+    // );
+    // processedContent = processedContent.replace(
+    //     /@([^@]+)@/g,
+    //     '<span class="highlight" data-term="$1" onclick="showNote(\'$1\', this)">$1</span>'
+    // );
+    
+    // Set innerHTML to render HTML content
+    contentDiv.innerHTML = processedContent;
+    
+    // Render KaTeX after HTML is inserted
+    renderMathInElement(contentDiv, {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\[', right: '\\]', display: true},
+            {left: '\\(', right: '\\)', display: false}
+        ],
+        throwOnError: false
+    });
+}
+
+function processExistingContent(contentDiv) {
+    // Process highlights in existing HTML content
+    let html = contentDiv.innerHTML;
+    
+    // Process highlight patterns in the HTML
+    // onclick="showNote(...)" disabled - commented out for now
+    // html = html.replace(
+    //     /\*([^*]+)\*@([^@]+)@/g,
+    //     '<span class="highlight" data-term="$2" data-display="$1" onclick="showNote(\'$2\', this)">$1</span>'
+    // );
+    // html = html.replace(
+    //     /\*([^*]+)\*/g,
+    //     '<span class="highlight" data-term="$1" onclick="showNote(\'$1\', this)">$1</span>'
+    // );
+    // html = html.replace(
+    //     /@([^@]+)@/g,
+    //     '<span class="highlight" data-term="$1" onclick="showNote(\'$1\', this)">$1</span>'
+    // );
+    
+    contentDiv.innerHTML = html;
+    
+    // Render KaTeX on the processed content
+    renderMathInElement(contentDiv, {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\[', right: '\\]', display: true},
+            {left: '\\(', right: '\\)', display: false}
+        ],
+        throwOnError: false
     });
 }
 
@@ -557,8 +642,10 @@ function wrapRange(range, id, color) {
     try {
         const span = document.createElement('span');
         span.className = 'user-highlight';
-        span.style.backgroundColor = color;
+        const finalColor = color || '#ffff00'; // Default to yellow if color not provided
+        span.style.setProperty('background-color', finalColor, 'important');
         span.dataset.id = id;
+        span.dataset.color = color || '#ffff00'; // Store color in dataset as backup
         span.onclick = (e) => handleHighlightClick(e, id);
         try {
             range.surroundContents(span);
@@ -566,6 +653,7 @@ function wrapRange(range, id, color) {
             span.appendChild(range.extractContents());
             range.insertNode(span);
         }
+        console.log('🎨 Wrapped range with highlight:', { id, color, backgroundColor: span.style.backgroundColor });
     } catch (e) {
         console.error('Failed to highlight:', e);
     }
@@ -740,12 +828,71 @@ function removeHighlight(id) {
 
 function renderUserHighlights() {
     const highlights = userNotes.filter(n => n.type === 'highlight');
+    console.log('🔍 Rendering highlights:', highlights.length, highlights);
     highlights.forEach(h => {
-        const container = document.getElementById(`content-${h.chapterId}`);
-        if (!container) return;
-        restoreHighlight(container, h.startOffset, h.endOffset, h.id, h.color);
+        let container = null;
+        
+        // For topic view, use content-topic container
+        if (window.isTopic) {
+            container = document.getElementById('content-topic');
+        } else if (h.chapterId) {
+            // For regular ebook, use chapter-based container
+            container = document.getElementById(`content-${h.chapterId}`);
+        } else {
+            // Fallback to main content
+            container = document.getElementById('content-main');
+        }
+        
+        if (!container) {
+            console.warn('Container not found for highlight:', h);
+            return;
+        }
+        
+        // Use id field (prefer original id, fallback to _id)
+        // The id field should be preserved from when it was created (e.g., "highlight_1234567890")
+        // If not, use _id as fallback
+        let highlightId = h.id;
+        if (!highlightId && h._id) {
+            highlightId = h._id.toString();
+            console.warn('⚠️ Highlight missing id, using _id:', highlightId, h);
+        }
+        if (!highlightId) {
+            console.error('❌ Highlight missing both id and _id:', h);
+            return;
+        }
+        
+        console.log('📍 Restoring highlight:', {
+            id: highlightId,
+            hasNote: !!h.note,
+            note: h.note,
+            startOffset: h.startOffset,
+            endOffset: h.endOffset,
+            color: h.color,
+            chapterId: h.chapterId
+        });
+        
+        // Ensure color is set, default to yellow if missing
+        const highlightColor = h.color || '#ffff00';
+        restoreHighlight(container, h.startOffset, h.endOffset, highlightId, highlightColor);
     });
-    updateHighlightStyles();
+    // Update styles after a longer delay to ensure all highlights are restored and DOM is ready
+    // Also wait for KaTeX to finish processing
+    setTimeout(() => {
+        updateHighlightStyles();
+        // Force re-apply colors to all highlights to ensure they're visible
+        document.querySelectorAll('.user-highlight').forEach(el => {
+            const dataColor = el.getAttribute('data-color');
+            const currentBg = el.style.backgroundColor;
+            // If no background color or transparent, apply color from data-color or find from userNotes
+            if (!currentBg || currentBg === 'transparent' || currentBg === 'rgba(0, 0, 0, 0)') {
+                const id = el.dataset.id;
+                const highlight = userNotes.find(n => n.id === id || (n._id && n._id.toString() === id));
+                const colorToApply = highlight?.color || dataColor || '#ffff00';
+                el.style.setProperty('background-color', colorToApply, 'important');
+                console.log('🔧 Force applied color to highlight:', { id, color: colorToApply });
+            }
+        });
+    }, 500);
 }
 
 function restoreHighlight(container, start, end, id, color) {
@@ -778,6 +925,9 @@ function restoreHighlight(container, start, end, id, color) {
         range.setStart(startNode, startOffsetVal);
         range.setEnd(endNode, endOffsetVal);
         wrapRange(range, id, color);
+        console.log('✅ Highlight restored:', { id, color, start, end, startNode: startNode.textContent.substring(0, 20), endNode: endNode.textContent.substring(0, 20) });
+    } else {
+        console.error('❌ Failed to restore highlight - nodes not found:', { id, color, start, end, container: container.id });
     }
 }
 
@@ -807,7 +957,16 @@ function saveNoteForm() {
             if (highlight) {
                 highlight.note = text;
                 highlight.updatedAt = new Date().toISOString();
+                // Update styles immediately to show border
                 updateHighlightStyles();
+                // Also directly update the element to ensure border shows
+                const el = document.querySelector(`.user-highlight[data-id="${currentHighlightId}"]`);
+                if (el && highlight.color) {
+                    el.style.setProperty('background-color', 'transparent', 'important');
+                    el.style.setProperty('border-bottom', `2px solid ${highlight.color}`, 'important');
+                    el.classList.remove('highlight-no-note');
+                    el.classList.add('highlight-has-note');
+                }
             }
             currentHighlightId = null;
         } else if (currentEditingNote) {
@@ -815,7 +974,18 @@ function saveNoteForm() {
             currentEditingNote.updatedAt = new Date().toISOString();
             const noteEl = document.getElementById(`note-${currentEditingNote.id}`);
             if (noteEl) {
-                noteEl.querySelector('.sticky-note-content').textContent = text;
+                const contentEl = noteEl.querySelector('.sticky-note-content');
+                if (contentEl) {
+                    contentEl.textContent = text;
+                }
+                // Also update expanded popup if it's open
+                const globalPopup = document.getElementById('global-sticky-popup');
+                if (globalPopup && noteEl.classList.contains('expanded')) {
+                    const popupContent = globalPopup.querySelector('.sticky-note-content');
+                    if (popupContent) {
+                        popupContent.textContent = text;
+                    }
+                }
             }
             currentEditingNote = null;
         } else {
@@ -880,13 +1050,30 @@ function renderSingleNote(note) {
             <div class="sticky-note-header">
                 <span class="sticky-note-title">Note <span class="sticky-badge">Sticky</span></span>
                 <div class="sticky-note-actions">
-                    <button class="note-btn edit" onclick="editNote('${note.id}')">✏️</button>
-                    <button class="note-btn delete" onclick="deleteNote('${note.id}')">🗑️</button>
+                    <button class="note-btn edit" data-note-id="${note.id}">✏️</button>
+                    <button class="note-btn delete" data-note-id="${note.id}">🗑️</button>
                 </div>
             </div>
             <div class="sticky-note-content">${escapeHtml(note.content)}</div>
         </div>
     `;
+    
+    // Add event listeners for edit and delete buttons
+    const editBtn = noteEl.querySelector('.note-btn.edit');
+    const deleteBtn = noteEl.querySelector('.note-btn.delete');
+    if (editBtn) {
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            editNote(note.id);
+        });
+    }
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteNote(note.id);
+        });
+    }
+    
     makeDraggable(noteEl, note.id);
     layer.appendChild(noteEl);
 }
@@ -916,6 +1103,24 @@ function expandNote(id) {
     const innerContent = noteEl.querySelector('.sticky-popup-inner');
     if (innerContent) {
         globalPopup.innerHTML = innerContent.innerHTML;
+        
+        // Re-attach event listeners for edit and delete buttons in expanded popup
+        const editBtn = globalPopup.querySelector('.note-btn.edit');
+        const deleteBtn = globalPopup.querySelector('.note-btn.delete');
+        if (editBtn) {
+            const noteId = editBtn.getAttribute('data-note-id');
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editNote(noteId);
+            });
+        }
+        if (deleteBtn) {
+            const noteId = deleteBtn.getAttribute('data-note-id');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteNote(noteId);
+            });
+        }
     }
     
     // Position the popup
@@ -1035,13 +1240,6 @@ function makeDraggable(element, noteId) {
         }
         element.style.top = newTop + 'px';
         element.style.left = newLeft + 'px';
-        const note = userNotes.find(n => n.id === noteId);
-        if (note) {
-            note.x = newLeft;
-            note.y = newTop;
-            notesChanged = true;
-            triggerAutosave();
-        }
     }
     function closeDragElement() {
         document.removeEventListener('mousemove', elementDrag);
@@ -1050,6 +1248,18 @@ function makeDraggable(element, noteId) {
         document.removeEventListener('touchend', closeDragElement);
         element.classList.remove('dragging');
         isDragMode = false;
+        
+        // Update note position in userNotes after drag ends
+        const note = userNotes.find(n => n.id === noteId);
+        if (note) {
+            const rect = element.getBoundingClientRect();
+            const container = document.querySelector('.ebook-container');
+            const containerRect = container.getBoundingClientRect();
+            note.x = rect.left - containerRect.left;
+            note.y = rect.top - containerRect.top;
+            notesChanged = true;
+            triggerAutosave();
+        }
     }
 }
 
@@ -1084,16 +1294,44 @@ function triggerAutosave() {
     }, 1000);
 }
 
+function showSaveProgress() {
+    const progressBar = document.getElementById('saveProgressBar');
+    if (progressBar) {
+        progressBar.classList.add('active');
+    }
+}
+
+function hideSaveProgress() {
+    const progressBar = document.getElementById('saveProgressBar');
+    if (progressBar) {
+        progressBar.classList.remove('active');
+    }
+}
+
 async function saveNotesToServer() {
     if (!userId) {
         console.error('Cannot save: User ID is missing');
         return;
     }
+    
+    // Show progress bar
+    showSaveProgress();
+    
     try {
+        const requestBody = { 
+            notes: userNotes, 
+            userId: userId 
+        };
+        
+        // Include topicId if available (for topic-based notes)
+        if (window.topicId) {
+            requestBody.topicId = window.topicId;
+        }
+        
         const response = await fetch('/api/user-notes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notes: userNotes, userId: userId })
+            body: JSON.stringify(requestBody)
         });
         const result = await response.json();
         if (response.ok) {
@@ -1102,8 +1340,13 @@ async function saveNotesToServer() {
             alert('Failed to save notes: ' + (result.error || response.statusText));
         }
     } catch (error) {
-    console.error('Error autosaving:', error);
-  }
+        console.error('Error autosaving:', error);
+    } finally {
+        // Hide progress bar after a short delay to show completion
+        setTimeout(() => {
+            hideSaveProgress();
+        }, 300);
+    }
 }
 
 function updateHighlightStyles() {
@@ -1136,21 +1379,66 @@ function updateHighlightStyles() {
     // 2. Process user highlights (.user-highlight)
     document.querySelectorAll('.user-highlight').forEach(el => {
         const id = el.dataset.id;
-        const highlight = userNotes.find(n => n.id === id);
+        // Find highlight by id (already normalized from _id if needed)
+        let highlight = userNotes.find(n => {
+            // Match by id field (normalized)
+            if (n.id === id) return true;
+            // Fallback: match by _id if id doesn't match
+            if (n._id && (n._id.toString() === id || n._id === id)) return true;
+            return false;
+        });
+        
+        // Get color from dataset first (set during wrapRange), then from highlight, then fallback
+        const dataColor = el.getAttribute('data-color');
+        const existingBgColor = el.style.backgroundColor;
+        
         if (highlight) {
-            if (highlight.note) {
+            // Check if highlight has a note (handle both 'note' field and any note-related fields)
+            const hasNote = highlight.note && highlight.note.trim().length > 0;
+            // Get color from highlight, fallback to dataset color, then existing style, then default
+            const highlightColor = highlight.color || dataColor || existingBgColor || '#ffff00';
+            
+            console.log('🎨 Updating highlight style:', {
+                id: id,
+                highlightId: highlight.id,
+                hasNote: hasNote,
+                note: highlight.note,
+                color: highlightColor,
+                dataColor: dataColor,
+                existingBg: existingBgColor
+            });
+            
+            if (hasNote) {
                 // Has note: Show as border-bottom
                 el.classList.remove('highlight-no-note');
                 el.classList.add('highlight-has-note');
-                el.style.backgroundColor = 'transparent';
-                el.style.borderBottom = `2px solid ${highlight.color}`;
+                el.style.setProperty('background-color', 'transparent', 'important');
+                el.style.setProperty('border-bottom', `2px solid ${highlightColor}`, 'important');
             } else {
                 // No note: Show as background highlight
                 el.classList.add('highlight-no-note');
                 el.classList.remove('highlight-has-note');
-                el.style.backgroundColor = highlight.color;
+                // Ensure color is always applied with important to override any CSS
+                const finalColor = highlightColor || dataColor || '#ffff00';
+                el.style.setProperty('background-color', finalColor, 'important');
                 el.style.borderBottom = 'none';
             }
+        } else {
+            console.warn('⚠️ Highlight not found in userNotes for id:', id, 'Available IDs:', userNotes.map(n => n.id || n._id));
+            // If highlight not found in userNotes, preserve the color from dataset or existing style
+            const preservedColor = dataColor || existingBgColor || '#ffff00';
+            // Always apply color - never leave it transparent or empty
+            if (preservedColor && preservedColor !== 'transparent' && preservedColor !== 'rgba(0, 0, 0, 0)') {
+                el.style.setProperty('background-color', preservedColor, 'important');
+                el.style.borderBottom = 'none';
+            } else {
+                // Fallback to yellow if no valid color found
+                el.style.setProperty('background-color', '#ffff00', 'important');
+                el.style.borderBottom = 'none';
+            }
+            // Mark as no-note since we don't have the highlight data
+            el.classList.add('highlight-no-note');
+            el.classList.remove('highlight-has-note');
         }
     });
 }
@@ -1166,11 +1454,23 @@ function initializePage() {
     window.pageParams = params;
     applyTheme(params.theme);
     renderContent();
+    
+    // Wait for content to be fully rendered before restoring notes and highlights
     setTimeout(function() {
         try {
             initializeNotesSystem();
+            // Render user notes (sticky notes)
             renderUserNotes();
-            renderUserHighlights();
+            // Render user highlights (text highlights) - wait a bit more for KaTeX to finish
+            setTimeout(() => {
+                renderUserHighlights();
+                console.log('✅ User notes and highlights restored:', {
+                    notesCount: userNotes.filter(n => n.type !== 'highlight').length,
+                    highlightsCount: userNotes.filter(n => n.type === 'highlight').length,
+                    isTopic: window.isTopic,
+                    topicId: window.topicId
+                });
+            }, 300);
         } catch (e) {
             console.error('Error initializing user data:', e);
         }
@@ -1178,7 +1478,7 @@ function initializePage() {
         if (testBtn) {
             testBtn.addEventListener('click', function() {});
         }
-    }, 100);
+    }, 500); // Increased timeout to ensure content and KaTeX are fully rendered
 }
 
 if (document.readyState === 'loading') {

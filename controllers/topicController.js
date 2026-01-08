@@ -1,6 +1,7 @@
 const Book = require('../models/Book');
 const Chapter = require('../models/Chapter');
 const Topic = require('../models/Topic');
+const UserNote = require('../models/UserNote');
 const mongoose = require('mongoose');
 
 /**
@@ -144,12 +145,45 @@ const createTopic = async (req, res) => {
 };
 
 /**
+ * Helper function to load user notes from MongoDB
+ */
+const loadUserNotes = async (userId, topicId) => {
+  try {
+    const query = { userId: userId };
+    if (topicId) {
+      query.topicId = topicId;
+    }
+    const notes = await UserNote.find(query).lean();
+    
+    // Map MongoDB _id to id for compatibility with frontend code
+    // Preserve original id field if it exists, otherwise use _id
+    const mappedNotes = (notes || []).map(note => {
+      const mapped = { ...note };
+      // If note has _id but no id field, use _id as id
+      // Otherwise, preserve the existing id field
+      if (mapped._id && !mapped.id) {
+        mapped.id = mapped._id.toString();
+      }
+      // Keep _id for reference but frontend will use id
+      return mapped;
+    });
+    
+    return mappedNotes;
+  } catch (error) {
+    console.error('Error loading user notes:', error);
+    return [];
+  }
+};
+
+/**
  * Get topic by id with all connected data (chapter and book)
- * GET /api/topics/:id
+ * Optionally includes user notes if userId is provided in query
+ * GET /api/topics/:id?userId=xxx
  */
 const getTopic = async (req, res) => {
   try {
     const topicId = req.params.id;
+    const userId = req.query.userId || req.query.user || req.query.id;
 
     if (!topicId) {
       return res.status(400).json({
@@ -161,7 +195,10 @@ const getTopic = async (req, res) => {
     // Find topic by id field or _id
     let topic = await Topic.collection.findOne({ id: topicId });
     if (!topic) {
-      topic = await Topic.collection.findOne({ _id: topicId });
+      // Check if topicId is a valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(topicId)) {
+        topic = await Topic.collection.findOne({ _id: new mongoose.Types.ObjectId(topicId) });
+      }
     }
 
     if (!topic) {
@@ -174,10 +211,25 @@ const getTopic = async (req, res) => {
     // Fetch all connected data (chapter and book)
     const topicWithConnections = await fetchTopicWithConnections(topic);
 
-    res.status(200).json({
+    // If userId is provided, also fetch user notes for this topic
+    let userNotes = [];
+    if (userId) {
+      userNotes = await loadUserNotes(userId, topicId);
+    }
+
+    // Return topic with user notes if userId was provided
+    const response = {
       success: true,
       data: [topicWithConnections],
-    });
+    };
+
+    if (userId) {
+      response.userNotes = userNotes;
+      response.userId = userId;
+      response.topicId = topicId;
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     res.status(500).json({
       success: false,

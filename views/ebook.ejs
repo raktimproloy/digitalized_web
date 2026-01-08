@@ -9,8 +9,50 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/note-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Serif+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
+        /* Progress Bar Styles */
+        .save-progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.1);
+            z-index: 99999;
+            display: none;
+        }
+        
+        .save-progress-bar.active {
+            display: block;
+        }
+        
+        .save-progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #017a47, #019d5a);
+            width: 0%;
+            animation: progressAnimation 1.5s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(1, 122, 71, 0.5);
+        }
+        
+        @keyframes progressAnimation {
+            0% {
+                width: 0%;
+                transform: translateX(0);
+            }
+            50% {
+                width: 70%;
+                transform: translateX(0);
+            }
+            100% {
+                width: 100%;
+                transform: translateX(0);
+            }
+        }
+        
         .highlight-palette {
             display: none;
             position: fixed; /* Changed to fixed for dragging */
@@ -258,6 +300,11 @@
     </style>
 </head>
 <body>
+    <!-- Save Progress Bar -->
+    <div class="save-progress-bar" id="saveProgressBar">
+        <div class="save-progress-bar-fill"></div>
+    </div>
+    
     <!-- Floating Action Button Menu -->
     <div class="fab-container">
         <div class="fab-options" id="fabOptions">
@@ -318,16 +365,38 @@
         <!-- Notes Layer - inside container so it scrolls with content -->
         <div class="notes-layer" id="notesLayer"></div>
         
-        <h1 class="ebook-title"><%= ebook.title || 'Ebook' %></h1>
-        
-        <% ebook.chapters.forEach(function(chapter) { %>
+        <% if (typeof isTopic !== 'undefined' && isTopic && ebook.content) { %>
+            <!-- Topic Content Display -->
             <div class="chapter">
-                <h2 class="chapter-title"><%= chapter.title %></h2>
-                <div class="chapter-content" id="content-<%= chapter.id %>">
-                    <!-- Content will be rendered here by JavaScript -->
+                <div class="chapter-content" id="content-topic">
+                    <%- ebook.content %>
                 </div>
             </div>
-        <% }); %>
+        <% } else { %>
+            <!-- Original Ebook Content Display -->
+            <% if (ebook.content) { %>
+                <div class="chapter">
+                    <div class="chapter-content" id="content-main">
+                        <%- ebook.content %>
+                    </div>
+                </div>
+            <% } %>
+            
+            <% if (ebook.chapters && ebook.chapters.length > 0) { %>
+                <% ebook.chapters.forEach(function(chapter) { %>
+                    <div class="chapter">
+                        <h2 class="chapter-title"><%= chapter.title %></h2>
+                        <div class="chapter-content" id="content-<%= chapter.id %>">
+                            <% if (chapter.content) { %>
+                                <%- chapter.content %>
+                            <% } else { %>
+                                <!-- Content will be rendered here by JavaScript -->
+                            <% } %>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } %>
+        <% } %>
     </div>
     
     <!-- Note Popup -->
@@ -345,6 +414,14 @@
         window.ebookData = <%- JSON.stringify(ebook) %>;
         window.userId = '<%= userId %>';
         window.initialUserNotes = <%- JSON.stringify(userNotes || []) %>;
+        <% if (typeof isTopic !== 'undefined' && isTopic) { %>
+        window.isTopic = true;
+        <% if (typeof topicId !== 'undefined' && topicId) { %>
+        window.topicId = '<%= topicId %>';
+        <% } %>
+        <% } else { %>
+        window.isTopic = false;
+        <% } %>
     </script>
     <script defer src="/js/ebook.js"></script>
 </body>
