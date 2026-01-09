@@ -1,7 +1,7 @@
 const Colors = {
   light: {
     text: '#0a0a0a',
-    background: '#F0F0F0',
+    background: '#121212',
     tint: '#017a47',
     icon: '#687076',
     tabIconDefault: '#687076',

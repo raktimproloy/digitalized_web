@@ -297,6 +297,61 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* Force Dark Mode Globally */
+body, html {
+    background-color: #121212 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Target the Ebook Container and Content */
+.ebook-container, 
+.chapter, 
+.chapter-content, 
+#content-topic, 
+#content-main,
+[id^="content-"] {
+    background-color: #121212 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Ensure headings are also white */
+h1, h2, h3, h4, h5, h6, .chapter-title {
+    color: #ffffff !important;
+}
+
+/* Style links for better visibility on dark background */
+a {
+    color: #4da3ff !important;
+}
+
+/* Adjust Note Modal and Popups for Dark Theme */
+.note-modal, 
+.note-modal-header, 
+.note-modal-content, 
+.note-modal-actions,
+.highlight-palette,
+.note-form-popup,
+.note-popup {
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+    border-color: #333 !important;
+}
+
+/* Adjust Inputs and Textareas */
+textarea#noteFormText {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+    border: 1px solid #444 !important;
+}
+
+/* Specific fix for KaTeX (if any math is rendered) */
+.katex {
+    color: #ffffff !important;
+}
+img {
+    filter: brightness(0.8) contrast(1.2);
+    border-radius: 4px;
+}
     </style>
 </head>
 <body>
@@ -316,20 +371,16 @@
                 <span class="option-label">Highlight</span>
                 <span class="option-icon">🖍️</span>
             </button>
-            <button class="fab-option" onclick="triggerShare()" style="--delay: 0.3s">
-                <span class="option-label">Share</span>
-                <span class="option-icon">📤</span>
-            </button>
         </div>
         <button type="button" class="add-note-btn" id="addNoteBtn" onclick="toggleFabMenu()" title="Menu">+</button>
     </div>
     
     <div class="highlight-palette" id="highlightPalette">
         <div class="palette-handle">⋮⋮</div>
-        <button class="color-btn" style="background-color: #ffff00;" onclick="setHighlightColor('#ffff00')" title="Yellow"></button>
-        <button class="color-btn" style="background-color: #90ee90;" onclick="setHighlightColor('#90ee90')" title="Green"></button>
-        <button class="color-btn" style="background-color: #add8e6;" onclick="setHighlightColor('#add8e6')" title="Blue"></button>
-        <button class="color-btn" style="background-color: #ffb6c1;" onclick="setHighlightColor('#ffb6c1')" title="Pink"></button>
+        <button class="color-btn" style="background-color: #6b6b00;" onclick="setHighlightColor('#6b6b00')" title="Yellow"></button>
+        <button class="color-btn" style="background-color: #005f00;" onclick="setHighlightColor('#005f00')" title="Green"></button>
+        <button class="color-btn" style="background-color: #00455c;" onclick="setHighlightColor('#00455c')" title="Blue"></button>
+        <button class="color-btn" style="background-color: #55000d;" onclick="setHighlightColor('#55000d')" title="Pink"></button>
         <button class="color-btn close-palette" onclick="closeHighlightPalette()">×</button>
     </div>
 
