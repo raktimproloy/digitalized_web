@@ -726,6 +726,7 @@ function showHighlightMenu(e, id) {
         html += `<button class="highlight-menu-btn view" onclick="openNoteModal('${id}')" title="View Note">👁️</button>`;
         html += `<button class="highlight-menu-btn delete" onclick="removeHighlight('${id}'); hideHighlightMenu()" title="Delete">❌</button>`;
     } else {
+         html += `<button class="highlight-menu-btn add" onclick="addNoteToHighlight('${id}')" title="Add Note">AI</button>`;
         html += `<button class="highlight-menu-btn add" onclick="addNoteToHighlight('${id}')" title="Add Note">➕</button>`;
         html += `<button class="highlight-menu-btn delete" onclick="removeHighlight('${id}'); hideHighlightMenu()" title="Delete">❌</button>`;
     }
