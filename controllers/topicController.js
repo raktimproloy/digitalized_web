@@ -4,6 +4,8 @@ const Topic = require('../models/Topic');
 const UserNote = require('../models/UserNote');
 const UserTopicUnlock = require('../models/UserTopicUnlock');
 const UserTopicPoint = require('../models/UserTopicPoint');
+const TopicShare = require('../models/TopicShare');
+const User = require('../models/User');
 const mongoose = require('mongoose');
 
 // Import fetchBookWithConnections from bookController
@@ -209,11 +211,82 @@ const getTopic = async (req, res) => {
 
     // If userId is provided, also fetch user notes for this topic
     let userNotes = [];
+    let sharedInfo = null;
+    
     if (userId) {
       userNotes = await loadUserNotes(userId, topicId);
+      
+      // Get shared info: who I shared with and who shared with me
+      const finalTopicId = topic.id || topic._id.toString();
+      
+      // Get shares where I am the owner (who can see my notes)
+      const myShares = await TopicShare.find({
+        ownerId: userId.toString(),
+        topicId: finalTopicId,
+      }).lean();
+      
+      // Get shares where I am the recipient (who shared this with me)
+      const sharedWithMe = await TopicShare.find({
+        sharedWithUserId: userId.toString(),
+        topicId: finalTopicId,
+      }).lean();
+      
+      // Get user info for shares
+      const sharedWithUsers = await Promise.all(
+        myShares.map(async (share) => {
+          const userQuery = [
+            { _id: share.sharedWithUserId }, // Try _id as string first (for custom string IDs)
+            { id: share.sharedWithUserId },
+            { phoneNumber: share.sharedWithUserId },
+          ];
+          // Add ObjectId query if it's a valid ObjectId
+          if (mongoose.Types.ObjectId.isValid(share.sharedWithUserId)) {
+            userQuery.unshift({ _id: new mongoose.Types.ObjectId(share.sharedWithUserId) });
+          }
+          
+          const user = await User.collection.findOne({ $or: userQuery });
+          return {
+            userId: share.sharedWithUserId,
+            name: user?.name || null,
+            phoneNumber: user?.phoneNumber || null,
+            email: user?.email || null,
+            sharedAt: share.sharedAt,
+            shareId: share._id.toString(),
+          };
+        })
+      );
+      
+      const sharedByUsers = await Promise.all(
+        sharedWithMe.map(async (share) => {
+          const userQuery = [
+            { _id: share.ownerId }, // Try _id as string first (for custom string IDs)
+            { id: share.ownerId },
+            { phoneNumber: share.ownerId },
+          ];
+          // Add ObjectId query if it's a valid ObjectId
+          if (mongoose.Types.ObjectId.isValid(share.ownerId)) {
+            userQuery.unshift({ _id: new mongoose.Types.ObjectId(share.ownerId) });
+          }
+          
+          const user = await User.collection.findOne({ $or: userQuery });
+          return {
+            userId: share.ownerId,
+            name: user?.name || null,
+            phoneNumber: user?.phoneNumber || null,
+            email: user?.email || null,
+            sharedAt: share.sharedAt,
+            shareId: share._id.toString(),
+          };
+        })
+      );
+      
+      sharedInfo = {
+        sharedWith: sharedWithUsers, // Users I shared this topic with (who can see my notes)
+        sharedBy: sharedByUsers, // Users who shared this topic with me
+      };
     }
 
-    // Return topic with user notes if userId was provided
+    // Return topic with user notes and shared info if userId was provided
     const response = {
       success: true,
       data: [topicWithConnections],
@@ -223,6 +296,7 @@ const getTopic = async (req, res) => {
       response.userNotes = userNotes;
       response.userId = userId;
       response.topicId = topicId;
+      response.sharedInfo = sharedInfo;
     }
 
     res.status(200).json(response);

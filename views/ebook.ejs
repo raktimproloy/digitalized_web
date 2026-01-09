@@ -422,6 +422,14 @@
         <% } else { %>
         window.isTopic = false;
         <% } %>
+        <% if (typeof isSharedView !== 'undefined' && isSharedView) { %>
+        window.isSharedView = true;
+        window.sharedId = '<%= sharedId %>';
+        window.sharedBy = <%- JSON.stringify(sharedBy || {}) %>;
+        window.shareInfo = <%- JSON.stringify(shareInfo || {}) %>;
+        <% } else { %>
+        window.isSharedView = false;
+        <% } %>
     </script>
     <script defer src="/js/ebook.js"></script>
 </body>

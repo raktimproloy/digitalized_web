@@ -3,6 +3,7 @@ const Chapter = require('../models/Chapter');
 const Topic = require('../models/Topic');
 const UserTopicUnlock = require('../models/UserTopicUnlock');
 const UserTopicPoint = require('../models/UserTopicPoint');
+const UserChapterClick = require('../models/UserChapterClick');
 const mongoose = require('mongoose');
 
 /**
@@ -23,6 +24,7 @@ const fetchBookWithConnections = async (book, userId = null) => {
   // Get unlocked topic IDs for this user if userId is provided
   let unlockedTopicIds = new Set();
   let topicPointsMap = new Map(); // Map to store points for each topic
+  let recentChapterId = null; // Store recent chapter ID for this book
   
   if (userId) {
     const unlocks = await UserTopicUnlock.find({ userId }).lean();
@@ -42,6 +44,16 @@ const fetchBookWithConnections = async (book, userId = null) => {
         topicPointsMap.set(topicId.toString(), pointRecord.point || 0);
       }
     });
+    
+    // Get recent chapter click for this book
+    const chapterClick = await UserChapterClick.findOne({
+      userId: userId.toString(),
+      bookId: bookId,
+    }).lean();
+    
+    if (chapterClick) {
+      recentChapterId = chapterClick.chapterId;
+    }
   }
   
   // For each chapter, fetch its topics (excluding content field)
@@ -104,6 +116,11 @@ const fetchBookWithConnections = async (book, userId = null) => {
   
   // Add roadmap (chapters with topics) to book
   book.roadmap = chapters;
+  
+  // Add recent chapter ID if available
+  if (recentChapterId) {
+    book.recentChapterId = recentChapterId;
+  }
   
   return book;
 };

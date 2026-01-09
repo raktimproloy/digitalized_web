@@ -43,6 +43,9 @@ function hexToRgb(hex) {
 const ebookData = window.ebookData;
 const userId = window.userId;
 const initialUserNotes = window.initialUserNotes || [];
+const isSharedView = window.isSharedView || false;
+const sharedBy = window.sharedBy || null;
+const shareInfo = window.shareInfo || null;
 // Normalize notes: ensure id field exists (map _id to id if needed)
 // Preserve original id if it exists, otherwise use _id
 let userNotes = initialUserNotes.map(note => {
@@ -64,6 +67,35 @@ let selectedPosition = null;
 let addNoteMode = false;
 let highlightMode = false;
 let highlightColor = '#ffff00';
+
+// Show shared view banner
+function showSharedViewBanner() {
+    const banner = document.createElement('div');
+    banner.id = 'shared-view-banner';
+    banner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #017a47 0%, #019d5a 100%);
+        color: white;
+        padding: 12px 20px;
+        text-align: center;
+        z-index: 100000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        font-size: 14px;
+        font-weight: 500;
+    `;
+    const ownerName = sharedBy?.name || sharedBy?.phoneNumber || 'User';
+    banner.innerHTML = `
+        <span>👤 Viewing notes shared by <strong>${escapeHtml(ownerName)}</strong></span>
+        <span style="margin-left: 10px; opacity: 0.8; font-size: 12px;">(Read-only mode)</span>
+    `;
+    document.body.insertBefore(banner, document.body.firstChild);
+    
+    // Adjust body padding to account for banner
+    document.body.style.paddingTop = '50px';
+}
 
 function getParams() {
   const params = new URLSearchParams(window.location.search);
@@ -214,6 +246,19 @@ function applyTheme(themeName) {
 }
 
 function renderContent() {
+    // Show shared view banner if in shared view
+    if (isSharedView && sharedBy) {
+        showSharedViewBanner();
+    }
+    
+    // Hide FAB menu in shared view (read-only mode)
+    if (isSharedView) {
+        const fabContainer = document.querySelector('.fab-container');
+        if (fabContainer) {
+            fabContainer.style.display = 'none';
+        }
+    }
+    
     // Check if this is a topic view
     if (window.isTopic) {
         // Render topic content
@@ -1044,37 +1089,47 @@ function renderSingleNote(note) {
             expandNote(note.id);
         }
     });
+    
+    // In shared view, hide edit/delete buttons and show shared indicator
+    const actionsHtml = isSharedView 
+        ? `<div class="sticky-note-actions">
+            <span class="shared-badge" title="Shared by ${sharedBy?.name || 'User'}">👤 Shared</span>
+          </div>`
+        : `<div class="sticky-note-actions">
+            <button class="note-btn edit" data-note-id="${note.id}">✏️</button>
+            <button class="note-btn delete" data-note-id="${note.id}">🗑️</button>
+          </div>`;
+    
     noteEl.innerHTML = `
-        <div class="drag-handle-indicator">✥</div>
+        ${!isSharedView ? '<div class="drag-handle-indicator">✥</div>' : ''}
         <div class="sticky-popup-inner">
             <div class="sticky-note-header">
                 <span class="sticky-note-title">Note <span class="sticky-badge">Sticky</span></span>
-                <div class="sticky-note-actions">
-                    <button class="note-btn edit" data-note-id="${note.id}">✏️</button>
-                    <button class="note-btn delete" data-note-id="${note.id}">🗑️</button>
-                </div>
+                ${actionsHtml}
             </div>
             <div class="sticky-note-content">${escapeHtml(note.content)}</div>
         </div>
     `;
     
-    // Add event listeners for edit and delete buttons
-    const editBtn = noteEl.querySelector('.note-btn.edit');
-    const deleteBtn = noteEl.querySelector('.note-btn.delete');
-    if (editBtn) {
-        editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            editNote(note.id);
-        });
-    }
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteNote(note.id);
-        });
+    // Only add event listeners and make draggable if not in shared view
+    if (!isSharedView) {
+        const editBtn = noteEl.querySelector('.note-btn.edit');
+        const deleteBtn = noteEl.querySelector('.note-btn.delete');
+        if (editBtn) {
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editNote(note.id);
+            });
+        }
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteNote(note.id);
+            });
+        }
+        makeDraggable(noteEl, note.id);
     }
     
-    makeDraggable(noteEl, note.id);
     layer.appendChild(noteEl);
 }
 
@@ -1104,22 +1159,24 @@ function expandNote(id) {
     if (innerContent) {
         globalPopup.innerHTML = innerContent.innerHTML;
         
-        // Re-attach event listeners for edit and delete buttons in expanded popup
-        const editBtn = globalPopup.querySelector('.note-btn.edit');
-        const deleteBtn = globalPopup.querySelector('.note-btn.delete');
-        if (editBtn) {
-            const noteId = editBtn.getAttribute('data-note-id');
-            editBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                editNote(noteId);
-            });
-        }
-        if (deleteBtn) {
-            const noteId = deleteBtn.getAttribute('data-note-id');
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                deleteNote(noteId);
-            });
+        // Re-attach event listeners for edit and delete buttons in expanded popup (only if not shared view)
+        if (!isSharedView) {
+            const editBtn = globalPopup.querySelector('.note-btn.edit');
+            const deleteBtn = globalPopup.querySelector('.note-btn.delete');
+            if (editBtn) {
+                const noteId = editBtn.getAttribute('data-note-id');
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    editNote(noteId);
+                });
+            }
+            if (deleteBtn) {
+                const noteId = deleteBtn.getAttribute('data-note-id');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteNote(noteId);
+                });
+            }
         }
     }
     

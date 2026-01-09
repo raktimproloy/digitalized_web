@@ -41,6 +41,14 @@ app.use('/api/chapters', chapterRoutes);
 const topicRoutes = require('./routes/topicRoutes');
 app.use('/api/topics', topicRoutes);
 
+// Share API routes
+const shareRoutes = require('./routes/shareRoutes');
+app.use('/api/share', shareRoutes);
+
+// Chapter Click API routes
+const chapterClickRoutes = require('./routes/chapterClickRoutes');
+app.use('/api/chapter-click', chapterClickRoutes);
+
 // Load ebooks data
 let ebooksData = {};
 try {
@@ -125,6 +133,118 @@ async function saveUserNotes(notes, userId, topicId) {
 app.get('/ebook', async (req, res) => {
   const userId = req.query.user || req.query.id || req.query.userId;
   const topicId = req.query.topicId || req.query.topic;
+  const sharedId = req.query.sharedId || req.query.shareId;
+  
+  // If sharedId is provided, fetch and display shared topic notes
+  if (sharedId && topicId) {
+    try {
+      // Import TopicShare model
+      const TopicShare = require('./models/TopicShare');
+      
+      // Find the share record
+      const share = await TopicShare.findById(sharedId).lean();
+      
+      if (!share) {
+        return res.status(404).send(`Share not found for ID: ${sharedId}`);
+      }
+      
+      // Verify the topicId matches
+      if (share.topicId !== topicId.toString()) {
+        return res.status(400).send('Topic ID does not match the share record');
+      }
+      
+      // Find topic by id field first
+      let topic = await Topic.findOne({ id: topicId }).lean();
+      
+      // If not found, try MongoDB _id
+      if (!topic) {
+        // Check if topicId is a valid ObjectId
+        if (mongoose.Types.ObjectId.isValid(topicId)) {
+          topic = await Topic.findById(topicId).lean();
+        }
+      }
+      
+      if (!topic) {
+        return res.status(404).send(`No topic found for ID: ${topicId}`);
+      }
+      
+      // Fetch shared notes directly
+      const User = require('./models/User');
+      const Chapter = require('./models/Chapter');
+      const Book = require('./models/Book');
+      
+      const ownerId = share.ownerId;
+      
+      // Get owner's user info
+      const ownerQuery = [
+        { _id: ownerId },
+        { id: ownerId },
+        { phoneNumber: ownerId },
+      ];
+      if (mongoose.Types.ObjectId.isValid(ownerId)) {
+        ownerQuery.unshift({ _id: new mongoose.Types.ObjectId(ownerId) });
+      }
+      
+      const owner = await User.collection.findOne({ $or: ownerQuery });
+      
+      if (!owner) {
+        return res.status(404).send(`Owner user not found for share ID: ${sharedId}`);
+      }
+      
+      // Get owner's notes for this topic
+      const notesQuery = { userId: ownerId.toString() };
+      if (topicId) {
+        notesQuery.topicId = topicId.toString();
+      }
+      
+      const notes = await UserNote.find(notesQuery).lean();
+      
+      // Map MongoDB _id to id for compatibility with frontend code
+      const mappedNotes = (notes || []).map(note => {
+        const mapped = { ...note };
+        if (mapped._id && !mapped.id) {
+          mapped.id = mapped._id.toString();
+        }
+        return mapped;
+      });
+      
+      // Format owner info
+      const ownerInfo = {
+        userId: ownerId,
+        name: owner?.name || null,
+        phoneNumber: owner?.phoneNumber || null,
+        email: owner?.email || null,
+      };
+      
+      // Create ebook-like structure for topic
+      const topicEbook = {
+        title: topic.name || topic.title || 'Topic',
+        content: topic.content || '',
+        chapters: [],
+        notes: {}
+      };
+      
+      res.render('ebook', {
+        ebook: topicEbook,
+        userId: share.sharedWithUserId, // The recipient's ID
+        userNotes: mappedNotes, // Owner's notes
+        isTopic: true,
+        topicId: topicId,
+        isSharedView: true,
+        sharedId: sharedId,
+        sharedBy: ownerInfo,
+        shareInfo: {
+          shareId: share._id.toString(),
+          sharedAt: share.sharedAt,
+          sharedBy: ownerInfo
+        }
+      });
+      return;
+    } catch (error) {
+      console.error('Error fetching shared topic:', error);
+      // Fall through to regular topic view
+    }
+  }
   
   // If topicId is provided, fetch and display topic content
   if (topicId) {

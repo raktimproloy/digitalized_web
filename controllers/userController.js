@@ -12,9 +12,29 @@ const createUser = async (req, res) => {
     // Check if user already exists by _id, phoneNumber, or email
     let existingUser = null;
     
-    // Check by _id if provided
+    // Check by _id if provided (try both string and ObjectId format)
     if (req.body._id) {
-      existingUser = await User.collection.findOne({ _id: req.body._id });
+      const idValue = req.body._id;
+      
+      // Try to find by _id as string
+      try {
+        existingUser = await User.collection.findOne({ _id: idValue });
+      } catch (e) {
+        // If string doesn't work, try as ObjectId
+        if (mongoose.Types.ObjectId.isValid(idValue)) {
+          try {
+            existingUser = await User.collection.findOne({ _id: new mongoose.Types.ObjectId(idValue) });
+          } catch (e2) {
+            // Ignore and continue
+          }
+        }
+      }
+      
+      // Also try finding by custom 'id' field if _id search didn't work
+      if (!existingUser) {
+        existingUser = await User.collection.findOne({ id: idValue });
+      }
+      
       if (existingUser) {
         return res.status(200).json({
           success: true,
@@ -24,8 +44,8 @@ const createUser = async (req, res) => {
       }
     }
     
-    // Check by phoneNumber if provided
-    if (req.body.phoneNumber) {
+    // Check by phoneNumber if provided and not null/empty
+    if (req.body.phoneNumber && req.body.phoneNumber.trim() !== '') {
       existingUser = await User.findOne({ phoneNumber: req.body.phoneNumber });
       if (existingUser) {
         return res.status(200).json({
@@ -36,8 +56,8 @@ const createUser = async (req, res) => {
       }
     }
     
-    // Check by email if provided
-    if (req.body.email) {
+    // Check by email if provided and not null/empty
+    if (req.body.email && req.body.email.trim() !== '') {
       existingUser = await User.findOne({ email: req.body.email });
       if (existingUser) {
         return res.status(200).json({
@@ -52,6 +72,16 @@ const createUser = async (req, res) => {
     // Use collection.insertOne() to bypass all Mongoose validation including _id validation
     const userData = { ...req.body };
     
+    // Remove null/empty phoneNumber to avoid unique index issues
+    if (userData.phoneNumber === null || userData.phoneNumber === '' || userData.phoneNumber === undefined) {
+      delete userData.phoneNumber;
+    }
+    
+    // Remove null/empty email to avoid potential issues
+    if (userData.email === null || userData.email === '' || userData.email === undefined) {
+      delete userData.email;
+    }
+    
     // Add timestamps if not provided (since we're bypassing Mongoose)
     const now = new Date();
     if (!userData.createdAt) userData.createdAt = now;
@@ -59,7 +89,7 @@ const createUser = async (req, res) => {
     
     // Insert directly into collection to bypass all validation
     const result = await User.collection.insertOne(userData);
-    
+    console.log('result', result);
     // Fetch the created document using collection to avoid Mongoose casting issues
     const user = await User.collection.findOne({ _id: result.insertedId });
 
@@ -76,19 +106,45 @@ const createUser = async (req, res) => {
     // Handle duplicate key error - find and return existing document
     if (error.code === 11000) {
       let existingUser = null;
+      let duplicateField = 'unknown';
+      
+      // Extract the duplicate field from error message
+      if (error.keyPattern) {
+        duplicateField = Object.keys(error.keyPattern)[0] || 'unknown';
+      } else if (error.message) {
+        // Try to extract field name from error message
+        const match = error.message.match(/index: (\w+)_\d+/);
+        if (match) {
+          duplicateField = match[1];
+        }
+      }
       
       // Try to find by _id if it was in the request
       if (req.body._id) {
-        existingUser = await User.collection.findOne({ _id: req.body._id });
+        const idValue = req.body._id;
+        try {
+          existingUser = await User.collection.findOne({ _id: idValue });
+        } catch (e) {
+          if (mongoose.Types.ObjectId.isValid(idValue)) {
+            try {
+              existingUser = await User.collection.findOne({ _id: new mongoose.Types.ObjectId(idValue) });
+            } catch (e2) {
+              // Try by custom 'id' field
+              existingUser = await User.collection.findOne({ id: idValue });
+            }
+          } else {
+            existingUser = await User.collection.findOne({ id: idValue });
+          }
+        }
       }
       
       // If not found by _id, try phoneNumber
-      if (!existingUser && req.body.phoneNumber) {
+      if (!existingUser && req.body.phoneNumber && req.body.phoneNumber.trim() !== '') {
         existingUser = await User.findOne({ phoneNumber: req.body.phoneNumber });
       }
       
       // If not found, try email
-      if (!existingUser && req.body.email) {
+      if (!existingUser && req.body.email && req.body.email.trim() !== '') {
         existingUser = await User.findOne({ email: req.body.email });
       }
       
@@ -98,13 +154,16 @@ const createUser = async (req, res) => {
           success: true,
           message: 'User already exists',
           data: existingUser,
+          duplicateField: duplicateField,
         });
       }
       
-      // If we couldn't find it, return generic duplicate error
-      return res.status(200).json({
-        success: true,
-        message: 'User already exists',
+      // If we couldn't find it, return error with duplicate field info
+      return res.status(409).json({
+        success: false,
+        error: 'Duplicate key error',
+        message: `User with this ${duplicateField} already exists`,
+        duplicateField: duplicateField,
       });
     }
 
