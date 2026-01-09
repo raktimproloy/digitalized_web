@@ -366,11 +366,7 @@
             flex-direction: column;
             align-items: flex-end;
             gap: 15px;
-<<<<<<< Updated upstream
-            margin-bottom: 12px;
-=======
             margin-bottom: 20px;
->>>>>>> Stashed changes
             pointer-events: none;
         }
 
